@@ -796,8 +796,17 @@
                 return;
             }
             
-            // Validate form data
-            const formData = getFormData();
+            // Get and validate form data
+            let formData;
+            try {
+                formData = getFormData();
+                console.log('Form data retrieved:', formData);
+            } catch (error) {
+                console.error('Failed to get form data:', error);
+                showMessage('Failed to get form data: ' + error.message, 'error');
+                return;
+            }
+            
             if (!validateFormData(formData)) {
                 return;
             }
@@ -879,6 +888,12 @@
         async function createToken(formData) {
             try {
                 console.log('Starting token creation...');
+                console.log('Form data received:', formData);
+                
+                // Check if formData is valid
+                if (!formData || typeof formData !== 'object') {
+                    throw new Error('Invalid form data provided');
+                }
                 
                 // For now, let's just send the fee and show a success message
                 // This will test if Phantom wallet integration is working
