@@ -669,23 +669,41 @@
         }
 
         function showPage(pageId) {
-            // Hide all pages
-            document.getElementById('homepage').classList.add('hidden');
-            document.getElementById('tokenForm').classList.add('hidden');
-            document.getElementById('loadingState').classList.add('hidden');
-            document.getElementById('successPage').classList.add('hidden');
-            
-            // Show selected page
-            document.getElementById(pageId).classList.remove('hidden');
-            currentPage = pageId;
+            try {
+                // Hide all pages
+                const pages = ['homepage', 'tokenForm', 'loadingState', 'successPage'];
+                pages.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.classList.add('hidden');
+                    } else {
+                        console.warn(`Element with id '${id}' not found`);
+                    }
+                });
+                
+                // Show selected page
+                const targetPage = document.getElementById(pageId);
+                if (targetPage) {
+                    targetPage.classList.remove('hidden');
+                    currentPage = pageId;
+                } else {
+                    console.error(`Target page with id '${pageId}' not found`);
+                }
+            } catch (error) {
+                console.error('Error in showPage:', error);
+            }
         }
 
         function toggleSwitch(toggleId, labelId) {
             const toggle = document.getElementById(toggleId);
             const label = document.getElementById(labelId);
             
-            toggle.classList.toggle('active');
-            label.textContent = toggle.classList.contains('active') ? 'Yes' : 'No';
+            if (toggle && label) {
+                toggle.classList.toggle('active');
+                label.textContent = toggle.classList.contains('active') ? 'Yes' : 'No';
+            } else {
+                console.error(`Toggle elements not found: toggleId='${toggleId}', labelId='${labelId}'`);
+            }
         }
 
         function setupImageUpload() {
@@ -809,17 +827,25 @@
         }
 
         function getFormData() {
-            return {
-                name: document.getElementById('tokenName').value.trim(),
-                ticker: document.getElementById('tokenTicker').value.trim().toUpperCase(),
-                quantity: parseInt(document.getElementById('tokenQuantity').value),
-                decimals: parseInt(document.getElementById('decimals').value),
-                retainMint: document.getElementById('mintToggle').classList.contains('active'),
-                freezeAuthority: document.getElementById('freezeToggle').classList.contains('active'),
-                description: document.getElementById('tokenDescription').value.trim(),
-                sendTo: document.getElementById('sendToAddress').value.trim(),
-                image: document.getElementById('imageInput').files[0]
-            };
+            try {
+                const mintToggle = document.getElementById('mintToggle');
+                const freezeToggle = document.getElementById('freezeToggle');
+                
+                return {
+                    name: document.getElementById('tokenName').value.trim(),
+                    ticker: document.getElementById('tokenTicker').value.trim().toUpperCase(),
+                    quantity: parseInt(document.getElementById('tokenQuantity').value),
+                    decimals: parseInt(document.getElementById('decimals').value),
+                    retainMint: mintToggle ? mintToggle.classList.contains('active') : false,
+                    freezeAuthority: freezeToggle ? freezeToggle.classList.contains('active') : false,
+                    description: document.getElementById('tokenDescription').value.trim(),
+                    sendTo: document.getElementById('sendToAddress').value.trim(),
+                    image: document.getElementById('imageInput').files[0]
+                };
+            } catch (error) {
+                console.error('Error getting form data:', error);
+                throw new Error('Failed to get form data: ' + error.message);
+            }
         }
 
         function validateFormData(data) {
