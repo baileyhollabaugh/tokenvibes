@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Vibes - Create Your Token</title>
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -842,15 +842,21 @@
 
         async function createToken(formData) {
             try {
+                console.log('Starting token creation...');
+                console.log('Solana Web3 available:', typeof solanaWeb3);
+                
                 // Get recent blockhash
                 const { blockhash } = await connection.getLatestBlockhash();
+                console.log('Got blockhash:', blockhash);
                 
                 // Create mint account
                 const mintKeypair = solanaWeb3.Keypair.generate();
+                console.log('Generated mint keypair:', mintKeypair.publicKey.toString());
                 
                 // Calculate space and rent
                 const mintSpace = 82; // Standard mint account size
                 const rentExemption = await connection.getMinimumBalanceForRentExemption(mintSpace);
+                console.log('Rent exemption:', rentExemption);
                 
                 // Create the transaction
                 const transaction = new solanaWeb3.Transaction();
@@ -865,8 +871,9 @@
                         programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
                     })
                 );
+                console.log('Added create account instruction');
                 
-                // Initialize mint instruction
+                // Initialize mint instruction - using a simpler approach
                 const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
                     keys: [
                         { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
@@ -881,12 +888,14 @@
                     ])
                 });
                 transaction.add(initializeMintInstruction);
+                console.log('Added initialize mint instruction');
                 
                 // Create associated token account for the recipient
                 const associatedTokenAccount = await solanaWeb3.PublicKey.findProgramAddress(
                     [new solanaWeb3.PublicKey(formData.sendTo).toBuffer(), new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), mintKeypair.publicKey.toBuffer()],
                     new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
                 );
+                console.log('Associated token account:', associatedTokenAccount[0].toString());
                 
                 // Create associated token account instruction
                 const createATAInstruction = new solanaWeb3.TransactionInstruction({
@@ -902,9 +911,12 @@
                     data: Buffer.alloc(0)
                 });
                 transaction.add(createATAInstruction);
+                console.log('Added create ATA instruction');
                 
                 // Mint tokens to the recipient
                 const mintAmount = formData.quantity * Math.pow(10, formData.decimals);
+                console.log('Mint amount:', mintAmount);
+                
                 // Mint tokens instruction
                 const mintToInstruction = new solanaWeb3.TransactionInstruction({
                     keys: [
@@ -919,6 +931,7 @@
                     ])
                 });
                 transaction.add(mintToInstruction);
+                console.log('Added mint to instruction');
                 
                 // Set recent blockhash and fee payer
                 transaction.recentBlockhash = blockhash;
