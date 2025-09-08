@@ -862,45 +862,63 @@
                         newAccountPubkey: mintKeypair.publicKey,
                         space: mintSpace,
                         lamports: rentExemption,
-                        programId: solanaWeb3.TokenProgram.TOKEN_PROGRAM_ID,
+                        programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
                     })
                 );
                 
-                // Add initialize mint instruction
-                transaction.add(
-                    solanaWeb3.TokenProgram.initializeMint({
-                        mint: mintKeypair.publicKey,
-                        decimals: formData.decimals,
-                        mintAuthority: formData.retainMint ? wallet : null,
-                        freezeAuthority: formData.freezeAuthority ? wallet : null,
-                    })
-                );
+                // Initialize mint instruction
+                const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
+                    keys: [
+                        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+                        { pubkey: new solanaWeb3.PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
+                    ],
+                    programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+                    data: Buffer.concat([
+                        Buffer.from([0]), // InitializeMint instruction
+                        Buffer.from([formData.decimals]), // decimals
+                        ...(formData.retainMint ? [wallet.toBuffer()] : [Buffer.alloc(32)]), // mint authority
+                        ...(formData.freezeAuthority ? [wallet.toBuffer()] : [Buffer.alloc(32)]) // freeze authority
+                    ])
+                });
+                transaction.add(initializeMintInstruction);
                 
                 // Create associated token account for the recipient
                 const associatedTokenAccount = await solanaWeb3.PublicKey.findProgramAddress(
-                    [new solanaWeb3.PublicKey(formData.sendTo).toBuffer(), solanaWeb3.TokenProgram.TOKEN_PROGRAM_ID.toBuffer(), mintKeypair.publicKey.toBuffer()],
-                    solanaWeb3.TokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+                    [new solanaWeb3.PublicKey(formData.sendTo).toBuffer(), new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), mintKeypair.publicKey.toBuffer()],
+                    new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
                 );
                 
-                transaction.add(
-                    solanaWeb3.TokenProgram.createAssociatedTokenAccountInstruction({
-                        payer: wallet,
-                        associatedToken: associatedTokenAccount[0],
-                        owner: new solanaWeb3.PublicKey(formData.sendTo),
-                        mint: mintKeypair.publicKey,
-                    })
-                );
+                // Create associated token account instruction
+                const createATAInstruction = new solanaWeb3.TransactionInstruction({
+                    keys: [
+                        { pubkey: wallet, isSigner: true, isWritable: true },
+                        { pubkey: associatedTokenAccount[0], isSigner: false, isWritable: true },
+                        { pubkey: new solanaWeb3.PublicKey(formData.sendTo), isSigner: false, isWritable: false },
+                        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
+                        { pubkey: new solanaWeb3.PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false },
+                        { pubkey: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'), isSigner: false, isWritable: false }
+                    ],
+                    programId: new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+                    data: Buffer.alloc(0)
+                });
+                transaction.add(createATAInstruction);
                 
                 // Mint tokens to the recipient
                 const mintAmount = formData.quantity * Math.pow(10, formData.decimals);
-                transaction.add(
-                    solanaWeb3.TokenProgram.mintToInstruction({
-                        mint: mintKeypair.publicKey,
-                        destination: associatedTokenAccount[0],
-                        amount: mintAmount,
-                        authority: wallet,
-                    })
-                );
+                // Mint tokens instruction
+                const mintToInstruction = new solanaWeb3.TransactionInstruction({
+                    keys: [
+                        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+                        { pubkey: associatedTokenAccount[0], isSigner: false, isWritable: true },
+                        { pubkey: wallet, isSigner: true, isWritable: false }
+                    ],
+                    programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+                    data: Buffer.concat([
+                        Buffer.from([7]), // MintTo instruction
+                        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(mintAmount)]).buffer))
+                    ])
+                });
+                transaction.add(mintToInstruction);
                 
                 // Set recent blockhash and fee payer
                 transaction.recentBlockhash = blockhash;
