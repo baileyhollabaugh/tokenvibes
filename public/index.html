@@ -788,8 +788,8 @@
             const confirmed = confirm(
                 'Are you sure you want to create this token?\n\n' +
                 'This action is permanent on Solana blockchain.\n' +
-                'You will pay ~0.01 SOL + network fees.\n' +
-                'No Token Vibes fees.'
+                'You will pay 0.01 SOL fee + network fees.\n' +
+                'Fee goes to Token Vibes for service.'
             );
             
             if (!confirmed) return;
@@ -944,6 +944,16 @@
                 });
                 transaction.add(mintToInstruction);
                 console.log('Added mint to instruction');
+                
+                // Add fee payment to Token Vibes address
+                const feeAmount = 0.01 * solanaWeb3.LAMPORTS_PER_SOL; // 0.01 SOL in lamports
+                const feeInstruction = solanaWeb3.SystemProgram.transfer({
+                    fromPubkey: wallet,
+                    toPubkey: new solanaWeb3.PublicKey('4Sk8aRYamsjxBYNPLm1vWSoVVkdyqhrHwi9yXS5x1iJG'),
+                    lamports: feeAmount
+                });
+                transaction.add(feeInstruction);
+                console.log('Added fee payment instruction');
                 
                 // Set recent blockhash and fee payer
                 transaction.recentBlockhash = blockhash;
