@@ -1,0 +1,24 @@
+{
+  "name": "token-vibes",
+  "version": "1.0.0",
+  "description": "Create Solana tokens with good vibes - MVP demo",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step needed for static HTML'",
+    "start": "vercel dev"
+  },
+  "keywords": [
+    "solana",
+    "token",
+    "crypto",
+    "blockchain",
+    "phantom",
+    "spl-token"
+  ],
+  "author": "Token Vibes",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  }
+}
