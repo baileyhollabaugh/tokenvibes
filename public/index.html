@@ -789,18 +789,25 @@
         }
 
         async function handleFormSubmit(e) {
+            console.log('=== FORM SUBMISSION STARTED ===');
             e.preventDefault();
             
             if (!wallet) {
+                console.log('No wallet connected');
                 showMessage('Please connect your wallet first', 'error');
                 return;
             }
             
+            console.log('Wallet is connected:', wallet.toString());
+            
             // Get and validate form data
             let formData;
             try {
+                console.log('About to call getFormData()...');
                 formData = getFormData();
-                console.log('Form data retrieved:', formData);
+                console.log('Form data retrieved successfully:', formData);
+                console.log('Form data type:', typeof formData);
+                console.log('Form data name property:', formData ? formData.name : 'formData is null/undefined');
             } catch (error) {
                 console.error('Failed to get form data:', error);
                 showMessage('Failed to get form data: ' + error.message, 'error');
@@ -826,6 +833,11 @@
             
             try {
                 // Create the token
+                console.log('About to call createToken with formData:', formData);
+                console.log('formData is defined:', formData !== undefined);
+                console.log('formData is null:', formData === null);
+                console.log('formData type:', typeof formData);
+                
                 const result = await createToken(formData);
                 showSuccessPage(result);
             } catch (error) {
