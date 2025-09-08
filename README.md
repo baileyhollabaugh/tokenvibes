@@ -10,7 +10,7 @@ A simple, vibe-based website for creating Solana SPL tokens without coding knowl
 - 📱 **Mobile-optimized** design with large buttons
 - 🖼️ **Image upload** for token metadata
 - ✅ **Form validation** and error handling
-- 💰 **0.01 SOL anti-spam fee** (user-paid, no Token Vibes fees)
+- 💰 **0.01 SOL anti-spam fee** 
 - 🎯 **Success page** with Solana Explorer links
 
 ## Tech Stack
