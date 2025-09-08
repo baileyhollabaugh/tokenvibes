@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
             min-height: 100vh;
             color: #333;
         }
@@ -39,8 +39,8 @@
             font-family: 'Courier New', monospace;
             font-size: 3rem;
             font-weight: bold;
-            color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
             margin-bottom: 10px;
         }
 
@@ -55,7 +55,7 @@
             display: inline-block;
             width: 3px;
             height: 1em;
-            background-color: #00ff00;
+            background-color: #00ff41;
             animation: blink 1s infinite;
             margin-left: 2px;
         }
@@ -67,7 +67,7 @@
 
         /* Buttons */
         .btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            background: linear-gradient(45deg, #00b894, #00a085);
             color: white;
             border: none;
             padding: 15px 30px;
@@ -90,7 +90,7 @@
         }
 
         .btn-secondary {
-            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            background: linear-gradient(45deg, #00d2d3, #00b894);
         }
 
         .btn-success {
@@ -164,8 +164,8 @@
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #74b9ff;
-            box-shadow: 0 0 0 3px rgba(116, 185, 255, 0.1);
+            border-color: #00b894;
+            box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1);
         }
 
         .form-group textarea {
@@ -233,8 +233,8 @@
         }
 
         .image-upload:hover {
-            border-color: #74b9ff;
-            background: rgba(116, 185, 255, 0.05);
+            border-color: #00b894;
+            background: rgba(0, 184, 148, 0.05);
         }
 
         .image-upload.dragover {
@@ -286,7 +286,7 @@
             width: 50px;
             height: 50px;
             border: 5px solid #f3f3f3;
-            border-top: 5px solid #74b9ff;
+            border-top: 5px solid #00b894;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 20px;
@@ -953,7 +953,7 @@
                 <p><strong>Quantity:</strong> ${result.quantity.toLocaleString()}</p>
                 <p><strong>Decimals:</strong> ${result.decimals}</p>
                 <p><strong>Mint Address:</strong> ${result.mintAddress}</p>
-                <p><strong>Transaction:</strong> <a href="https://explorer.solana.com/tx/${result.signature}?cluster=devnet" target="_blank" style="color: #74b9ff;">View on Solana Explorer</a></p>
+                <p><strong>Transaction:</strong> <a href="https://explorer.solana.com/tx/${result.signature}?cluster=devnet" target="_blank" style="color: #00b894;">View on Solana Explorer</a></p>
             `;
             
             showPage('successPage');
