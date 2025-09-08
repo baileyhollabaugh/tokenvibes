@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Vibes - Create Your Token</title>
-    <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
     <script src="https://unpkg.com/process@0.11.10/browser.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
     <script>
-        // Make Node.js globals available in browser
-        window.Buffer = Buffer;
+        // Make process available globally
         window.process = process;
         
         // Add globalThis polyfill for older browsers
@@ -885,26 +883,28 @@
                 );
                 console.log('Added create account instruction');
                 
-                // Initialize mint instruction - using a simpler approach
+                // Initialize mint instruction - using browser-compatible approach
+                const initializeMintData = new Uint8Array([
+                    0, // InitializeMint instruction
+                    formData.decimals, // decimals
+                    ...(formData.retainMint ? Array.from(wallet.toBytes()) : new Array(32).fill(0)), // mint authority
+                    ...(formData.freezeAuthority ? Array.from(wallet.toBytes()) : new Array(32).fill(0)) // freeze authority
+                ]);
+                
                 const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
                     keys: [
                         { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
                         { pubkey: new solanaWeb3.PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
                     ],
                     programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-                    data: Buffer.concat([
-                        Buffer.from([0]), // InitializeMint instruction
-                        Buffer.from([formData.decimals]), // decimals
-                        ...(formData.retainMint ? [wallet.toBuffer()] : [Buffer.alloc(32)]), // mint authority
-                        ...(formData.freezeAuthority ? [wallet.toBuffer()] : [Buffer.alloc(32)]) // freeze authority
-                    ])
+                    data: initializeMintData
                 });
                 transaction.add(initializeMintInstruction);
                 console.log('Added initialize mint instruction');
                 
                 // Create associated token account for the recipient
                 const associatedTokenAccount = await solanaWeb3.PublicKey.findProgramAddress(
-                    [new solanaWeb3.PublicKey(formData.sendTo).toBuffer(), new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBuffer(), mintKeypair.publicKey.toBuffer()],
+                    [new solanaWeb3.PublicKey(formData.sendTo).toBytes(), new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBytes(), mintKeypair.publicKey.toBytes()],
                     new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
                 );
                 console.log('Associated token account:', associatedTokenAccount[0].toString());
@@ -930,6 +930,9 @@
                 console.log('Mint amount:', mintAmount);
                 
                 // Mint tokens instruction
+                const mintAmountBytes = new Uint8Array(new BigUint64Array([BigInt(mintAmount)]).buffer);
+                const mintToData = new Uint8Array([7, ...mintAmountBytes]); // MintTo instruction + amount
+                
                 const mintToInstruction = new solanaWeb3.TransactionInstruction({
                     keys: [
                         { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
@@ -937,10 +940,7 @@
                         { pubkey: wallet, isSigner: true, isWritable: false }
                     ],
                     programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-                    data: Buffer.concat([
-                        Buffer.from([7]), // MintTo instruction
-                        Buffer.from(new Uint8Array(new BigUint64Array([BigInt(mintAmount)]).buffer))
-                    ])
+                    data: mintToData
                 });
                 transaction.add(mintToInstruction);
                 console.log('Added mint to instruction');
