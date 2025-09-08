@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Token Vibes - Create Your Token</title>
+    <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
     <script src="https://unpkg.com/process@0.11.10/browser.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
     <script>
-        // Make process available globally
+        // Make Node.js globals available in browser
+        window.Buffer = Buffer;
         window.process = process;
         
         // Add globalThis polyfill for older browsers
@@ -975,7 +977,7 @@
                 
             } catch (error) {
                 console.error('Token creation failed:', error);
-                showPage('createTokenPage');
+                showPage('tokenForm');
                 alert('Token creation failed: ' + error.message);
             }
         }
