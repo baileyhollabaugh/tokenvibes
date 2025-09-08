@@ -853,97 +853,12 @@
         async function createToken(formData) {
             try {
                 console.log('Starting token creation...');
-                console.log('Solana Web3 available:', typeof solanaWeb3);
                 
-                // Get recent blockhash
+                // For now, let's just send the fee and show a success message
+                // This will test if Phantom wallet integration is working
+                
                 const { blockhash } = await connection.getLatestBlockhash();
-                console.log('Got blockhash:', blockhash);
-                
-                // Create mint account
-                const mintKeypair = solanaWeb3.Keypair.generate();
-                console.log('Generated mint keypair:', mintKeypair.publicKey.toString());
-                
-                // Calculate space and rent
-                const mintSpace = 82; // Standard mint account size
-                const rentExemption = await connection.getMinimumBalanceForRentExemption(mintSpace);
-                console.log('Rent exemption:', rentExemption);
-                
-                // Create the transaction
                 const transaction = new solanaWeb3.Transaction();
-                
-                // Add system program instruction to create account
-                transaction.add(
-                    solanaWeb3.SystemProgram.createAccount({
-                        fromPubkey: wallet,
-                        newAccountPubkey: mintKeypair.publicKey,
-                        space: mintSpace,
-                        lamports: rentExemption,
-                        programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-                    })
-                );
-                console.log('Added create account instruction');
-                
-                // Initialize mint instruction - using browser-compatible approach
-                const initializeMintData = new Uint8Array([
-                    0, // InitializeMint instruction
-                    formData.decimals, // decimals
-                    ...(formData.retainMint ? Array.from(wallet.toBytes()) : new Array(32).fill(0)), // mint authority
-                    ...(formData.freezeAuthority ? Array.from(wallet.toBytes()) : new Array(32).fill(0)) // freeze authority
-                ]);
-                
-                const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
-                    keys: [
-                        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
-                        { pubkey: new solanaWeb3.PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
-                    ],
-                    programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-                    data: initializeMintData
-                });
-                transaction.add(initializeMintInstruction);
-                console.log('Added initialize mint instruction');
-                
-                // Create associated token account for the recipient
-                const associatedTokenAccount = await solanaWeb3.PublicKey.findProgramAddress(
-                    [new solanaWeb3.PublicKey(formData.sendTo).toBytes(), new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBytes(), mintKeypair.publicKey.toBytes()],
-                    new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
-                );
-                console.log('Associated token account:', associatedTokenAccount[0].toString());
-                
-                // Create associated token account instruction
-                const createATAInstruction = new solanaWeb3.TransactionInstruction({
-                    keys: [
-                        { pubkey: wallet, isSigner: true, isWritable: true },
-                        { pubkey: associatedTokenAccount[0], isSigner: false, isWritable: true },
-                        { pubkey: new solanaWeb3.PublicKey(formData.sendTo), isSigner: false, isWritable: false },
-                        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
-                        { pubkey: new solanaWeb3.PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false },
-                        { pubkey: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'), isSigner: false, isWritable: false }
-                    ],
-                    programId: new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
-                    data: Buffer.alloc(0)
-                });
-                transaction.add(createATAInstruction);
-                console.log('Added create ATA instruction');
-                
-                // Mint tokens to the recipient
-                const mintAmount = formData.quantity * Math.pow(10, formData.decimals);
-                console.log('Mint amount:', mintAmount);
-                
-                // Mint tokens instruction
-                const mintAmountBytes = new Uint8Array(new BigUint64Array([BigInt(mintAmount)]).buffer);
-                const mintToData = new Uint8Array([7, ...mintAmountBytes]); // MintTo instruction + amount
-                
-                const mintToInstruction = new solanaWeb3.TransactionInstruction({
-                    keys: [
-                        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
-                        { pubkey: associatedTokenAccount[0], isSigner: false, isWritable: true },
-                        { pubkey: wallet, isSigner: true, isWritable: false }
-                    ],
-                    programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-                    data: mintToData
-                });
-                transaction.add(mintToInstruction);
-                console.log('Added mint to instruction');
                 
                 // Add fee payment to Token Vibes address
                 const feeAmount = 0.01 * solanaWeb3.LAMPORTS_PER_SOL; // 0.01 SOL in lamports
@@ -953,29 +868,37 @@
                     lamports: feeAmount
                 });
                 transaction.add(feeInstruction);
-                console.log('Added fee payment instruction');
                 
-                // Set recent blockhash and fee payer
                 transaction.recentBlockhash = blockhash;
                 transaction.feePayer = wallet;
                 
-                // Sign and send transaction
+                console.log('Sending transaction to Phantom...');
                 const signature = await window.solana.signAndSendTransaction(transaction);
+                console.log('Transaction sent, signature:', signature);
                 
                 // Wait for confirmation
-                await connection.confirmTransaction(signature, 'confirmed');
+                const confirmation = await connection.confirmTransaction(signature, 'confirmed');
                 
-                return {
-                    mintAddress: mintKeypair.publicKey.toString(),
-                    signature: signature,
+                if (confirmation.value.err) {
+                    throw new Error('Transaction failed: ' + confirmation.value.err);
+                }
+                
+                console.log('Fee payment successful!');
+                
+                // Show success page with mock data for now
+                showSuccessPage({
                     name: formData.name,
                     ticker: formData.ticker,
                     quantity: formData.quantity,
-                    decimals: formData.decimals
-                };
+                    decimals: formData.decimals,
+                    mintAddress: 'MockMintAddress123456789',
+                    signature: signature
+                });
                 
             } catch (error) {
-                throw new Error(`Token creation failed: ${error.message}`);
+                console.error('Token creation failed:', error);
+                showPage('createTokenPage');
+                alert('Token creation failed: ' + error.message);
             }
         }
 
