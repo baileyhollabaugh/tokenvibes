@@ -837,20 +837,45 @@
 
         function getFormData() {
             try {
+                console.log('Getting form data...');
+                
+                // Check each element individually
+                const tokenNameEl = document.getElementById('tokenName');
+                const tokenTickerEl = document.getElementById('tokenTicker');
+                const tokenQuantityEl = document.getElementById('tokenQuantity');
+                const decimalsEl = document.getElementById('decimals');
                 const mintToggle = document.getElementById('mintToggle');
                 const freezeToggle = document.getElementById('freezeToggle');
+                const tokenDescriptionEl = document.getElementById('tokenDescription');
+                const sendToAddressEl = document.getElementById('sendToAddress');
+                const imageInputEl = document.getElementById('imageInput');
                 
-                return {
-                    name: document.getElementById('tokenName').value.trim(),
-                    ticker: document.getElementById('tokenTicker').value.trim().toUpperCase(),
-                    quantity: parseInt(document.getElementById('tokenQuantity').value),
-                    decimals: parseInt(document.getElementById('decimals').value),
+                console.log('Elements found:', {
+                    tokenName: !!tokenNameEl,
+                    tokenTicker: !!tokenTickerEl,
+                    tokenQuantity: !!tokenQuantityEl,
+                    decimals: !!decimalsEl,
+                    mintToggle: !!mintToggle,
+                    freezeToggle: !!freezeToggle,
+                    tokenDescription: !!tokenDescriptionEl,
+                    sendToAddress: !!sendToAddressEl,
+                    imageInput: !!imageInputEl
+                });
+                
+                const formData = {
+                    name: tokenNameEl ? tokenNameEl.value.trim() : '',
+                    ticker: tokenTickerEl ? tokenTickerEl.value.trim().toUpperCase() : '',
+                    quantity: tokenQuantityEl ? parseInt(tokenQuantityEl.value) : 0,
+                    decimals: decimalsEl ? parseInt(decimalsEl.value) : 9,
                     retainMint: mintToggle ? mintToggle.classList.contains('active') : false,
                     freezeAuthority: freezeToggle ? freezeToggle.classList.contains('active') : false,
-                    description: document.getElementById('tokenDescription').value.trim(),
-                    sendTo: document.getElementById('sendToAddress').value.trim(),
-                    image: document.getElementById('imageInput').files[0]
+                    description: tokenDescriptionEl ? tokenDescriptionEl.value.trim() : '',
+                    sendTo: sendToAddressEl ? sendToAddressEl.value.trim() : '',
+                    image: imageInputEl ? imageInputEl.files[0] : null
                 };
+                
+                console.log('Form data created:', formData);
+                return formData;
             } catch (error) {
                 console.error('Error getting form data:', error);
                 throw new Error('Failed to get form data: ' + error.message);
