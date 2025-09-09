@@ -167,10 +167,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.6 - SPL TOKEN FUNCTION FIXES 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.7 - MANUAL SPL TOKEN FALLBACK 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Fixed SPL Token function names + Library compatibility + Enhanced Buffer!');
+        console.log('✅ Manual SPL Token functions + Library fallbacks + Enhanced Buffer!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -667,6 +667,81 @@
         // Define TOKEN_PROGRAM_ID explicitly (Grok's suggestion)
         const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
         console.log('✅ TOKEN_PROGRAM_ID defined explicitly:', TOKEN_PROGRAM_ID.toString());
+        
+        // Manual SPL Token functions as fallback (since splToken library isn't loading)
+        const manualSPLToken = {
+            // Manual createInitializeMintInstruction
+            createInitializeMintInstruction: function(mint, decimals, mintAuthority, freezeAuthority) {
+                const data = Buffer.alloc(67);
+                data[0] = 0; // InitializeMint instruction
+                data.writeUInt32LE(decimals, 1);
+                data.writeUInt32LE(mintAuthority ? 1 : 0, 5);
+                data.writeUInt32LE(freezeAuthority ? 1 : 0, 9);
+                
+                if (mintAuthority) {
+                    mintAuthority.toBytes().copy(data, 13);
+                }
+                if (freezeAuthority) {
+                    freezeAuthority.toBytes().copy(data, 45);
+                }
+                
+                return new solanaWeb3.TransactionInstruction({
+                    keys: [
+                        { pubkey: mint, isSigner: false, isWritable: true },
+                        { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+                    ],
+                    programId: TOKEN_PROGRAM_ID,
+                    data: data
+                });
+            },
+            
+            // Manual getAssociatedTokenAddressSync
+            getAssociatedTokenAddressSync: function(mint, owner) {
+                const seeds = [
+                    owner.toBytes(),
+                    TOKEN_PROGRAM_ID.toBytes(),
+                    mint.toBytes()
+                ];
+                const [address] = solanaWeb3.PublicKey.findProgramAddressSync(seeds, new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'));
+                return address;
+            },
+            
+            // Manual createAssociatedTokenAccountInstruction
+            createAssociatedTokenAccountInstruction: function(payer, associatedToken, owner, mint) {
+                return new solanaWeb3.TransactionInstruction({
+                    keys: [
+                        { pubkey: payer, isSigner: true, isWritable: true },
+                        { pubkey: associatedToken, isSigner: false, isWritable: true },
+                        { pubkey: owner, isSigner: false, isWritable: false },
+                        { pubkey: mint, isSigner: false, isWritable: false },
+                        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+                        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+                        { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+                    ],
+                    programId: new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+                    data: Buffer.alloc(0)
+                });
+            },
+            
+            // Manual createMintToInstruction
+            createMintToInstruction: function(mint, destination, authority, amount) {
+                const data = Buffer.alloc(9);
+                data[0] = 7; // MintTo instruction
+                data.writeBigUInt64LE(BigInt(amount), 1);
+                
+                return new solanaWeb3.TransactionInstruction({
+                    keys: [
+                        { pubkey: mint, isSigner: false, isWritable: true },
+                        { pubkey: destination, isSigner: false, isWritable: true },
+                        { pubkey: authority, isSigner: true, isWritable: false }
+                    ],
+                    programId: TOKEN_PROGRAM_ID,
+                    data: data
+                });
+            }
+        };
+        
+        console.log('✅ Manual SPL Token functions defined as fallback');
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
@@ -693,6 +768,7 @@
                 console.log('Available SPL Token methods:', Object.keys(splToken));
             } else {
                 console.error('❌ SPL Token library not loaded!');
+                console.log('🔧 Will use manual SPL Token functions as fallback');
             }
             
             // Add PublicKey toBuffer polyfill if needed
@@ -1282,6 +1358,7 @@
                 console.log('Available createInitializeMint functions:');
                 console.log('- solanaWeb3.createInitializeMintInstruction:', typeof solanaWeb3.createInitializeMintInstruction);
                 console.log('- splToken.createInitializeMintInstruction:', typeof splToken?.createInitializeMintInstruction);
+                console.log('- manualSPLToken.createInitializeMintInstruction:', typeof manualSPLToken?.createInitializeMintInstruction);
                 
                 let initializeMintInstruction;
                 try {
@@ -1302,8 +1379,16 @@
                             mintAuthority, // mint authority (null if not retaining mint ability)
                             freezeAuthority  // freeze authority (null if not retaining freeze ability)
                         );
+                    } else if (typeof manualSPLToken?.createInitializeMintInstruction === 'function') {
+                        console.log('Using manualSPLToken.createInitializeMintInstruction...');
+                        initializeMintInstruction = manualSPLToken.createInitializeMintInstruction(
+                            mint.publicKey,
+                            formData.decimals,
+                            mintAuthority, // mint authority (null if not retaining mint ability)
+                            freezeAuthority  // freeze authority (null if not retaining freeze ability)
+                        );
                     } else {
-                        throw new Error('createInitializeMintInstruction function not found in either library');
+                        throw new Error('createInitializeMintInstruction function not found in any library');
                     }
                     console.log('✅ Initialize mint instruction created successfully');
                 } catch (error) {
@@ -1330,6 +1415,11 @@
                             mint.publicKey,
                             recipient
                         );
+                    } else if (typeof manualSPLToken?.getAssociatedTokenAddressSync === 'function') {
+                        associatedTokenAccount = manualSPLToken.getAssociatedTokenAddressSync(
+                            mint.publicKey,
+                            recipient
+                        );
                     } else {
                         throw new Error('getAssociatedTokenAddressSync function not found');
                     }
@@ -1346,6 +1436,13 @@
                         );
                     } else if (typeof solanaWeb3.createAssociatedTokenAccountInstruction === 'function') {
                         createATAInstruction = solanaWeb3.createAssociatedTokenAccountInstruction(
+                            wallet,
+                            associatedTokenAccount,
+                            recipient,
+                            mint.publicKey
+                        );
+                    } else if (typeof manualSPLToken?.createAssociatedTokenAccountInstruction === 'function') {
+                        createATAInstruction = manualSPLToken.createAssociatedTokenAccountInstruction(
                             wallet,
                             associatedTokenAccount,
                             recipient,
@@ -1378,6 +1475,13 @@
                             );
                         } else if (typeof solanaWeb3.createMintToInstruction === 'function') {
                             mintToInstruction = solanaWeb3.createMintToInstruction(
+                                mint.publicKey,
+                                associatedTokenAccount,
+                                wallet,
+                                mintAmount
+                            );
+                        } else if (typeof manualSPLToken?.createMintToInstruction === 'function') {
+                            mintToInstruction = manualSPLToken.createMintToInstruction(
                                 mint.publicKey,
                                 associatedTokenAccount,
                                 wallet,
