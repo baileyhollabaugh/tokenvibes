@@ -123,7 +123,7 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     const { mintAddress, mintSecretKey, metadata, name: tokenName, symbol: tokenSymbol, description: desc, quantity: tokenQuantity, decimals, destinationAddress: destAddress } = data.data;
 
     // Create the transaction on the frontend
-    const mintKeypair = solanaWeb3.Keypair.fromSecretKey(solanaWeb3.bs58.decode(mintSecretKey));
+    const mintKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(mintSecretKey));
 
     // Calculate rent exemption for mint account
     const rentExemption = await connection.getMinimumBalanceForRentExemption(

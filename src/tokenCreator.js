@@ -41,7 +41,7 @@ class TokenCreator {
         mintAddress: mintKeypair.publicKey.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
-        mintSecretKey: Buffer.from(mintKeypair.secretKey).toString('base58'),
+        mintSecretKey: Array.from(mintKeypair.secretKey),
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress
