@@ -167,10 +167,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.4 - WALLET PUBLICKEY DEBUG 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.5 - GROK + MY ANALYSIS COMBINED 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Debugging wallet PublicKey toBuffer issue + Enhanced Buffer!');
+        console.log('✅ Debugging ALL PublicKeys + Explicit TOKEN_PROGRAM_ID + Enhanced Buffer!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -663,6 +663,10 @@
         // Token Vibes fee address (you can change this to your own)
         const TOKEN_VIBES_FEE_ADDRESS = 'H8qNgn3ytAq9apwuhp2JmxfGgx7ertiL3W4dED8KowM3';
         const TOKEN_VIBES_FEE_AMOUNT = 0; // 0 SOL - removed fee for demo simplicity
+        
+        // Define TOKEN_PROGRAM_ID explicitly (Grok's suggestion)
+        const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+        console.log('✅ TOKEN_PROGRAM_ID defined explicitly:', TOKEN_PROGRAM_ID.toString());
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
@@ -1229,13 +1233,33 @@
                 // Create mint account using the newer API approach
                 console.log('Creating mint account instruction...');
                 
-                // Use the newer createAccount method that should work better
+                // Debug the TOKEN_PROGRAM_ID
+                console.log('TOKEN_PROGRAM_ID:', solanaWeb3.TOKEN_PROGRAM_ID);
+                console.log('TOKEN_PROGRAM_ID type:', typeof solanaWeb3.TOKEN_PROGRAM_ID);
+                console.log('TOKEN_PROGRAM_ID has toBuffer:', solanaWeb3.TOKEN_PROGRAM_ID ? typeof solanaWeb3.TOKEN_PROGRAM_ID.toBuffer : 'UNDEFINED');
+                
+                // Test TOKEN_PROGRAM_ID toBuffer if it exists
+                if (solanaWeb3.TOKEN_PROGRAM_ID && typeof solanaWeb3.TOKEN_PROGRAM_ID.toBuffer === 'function') {
+                    try {
+                        const programIdBuffer = solanaWeb3.TOKEN_PROGRAM_ID.toBuffer();
+                        console.log('✅ TOKEN_PROGRAM_ID.toBuffer() works:', programIdBuffer);
+                    } catch (error) {
+                        console.error('❌ TOKEN_PROGRAM_ID.toBuffer() failed:', error);
+                    }
+                } else {
+                    console.error('❌ TOKEN_PROGRAM_ID.toBuffer() method not available');
+                }
+                
+                // Use the newer createAccount method with fallback TOKEN_PROGRAM_ID
+                const programIdToUse = solanaWeb3.TOKEN_PROGRAM_ID || TOKEN_PROGRAM_ID;
+                console.log('Using programId:', programIdToUse.toString());
+                
                 const createMintAccountInstruction = solanaWeb3.SystemProgram.createAccount({
                     fromPubkey: wallet,
                     newAccountPubkey: mint.publicKey,
                     space: 82, // Standard mint account size
                     lamports: rentExemption,
-                    programId: solanaWeb3.TOKEN_PROGRAM_ID
+                    programId: programIdToUse
                 });
                 
                 console.log('✅ Account instruction created successfully');
