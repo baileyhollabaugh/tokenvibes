@@ -1,6 +1,5 @@
 const { Connection, Keypair, PublicKey, SystemProgram } = require('@solana/web3.js');
-const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
-const { irysUploader } = require('@metaplex-foundation/umi-uploader-irys');
+const axios = require('axios');
 
 class TokenCreator {
   constructor() {
@@ -8,13 +7,6 @@ class TokenCreator {
       process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
       'confirmed'
     );
-    
-    this.umi = createUmi(this.connection.rpcEndpoint)
-      .use(irysUploader({
-        address: process.env.IRYS_URL || 'https://node1.irys.xyz',
-        providerUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
-        timeout: 60000,
-      }));
   }
 
   async prepareTokenMetadata(tokenData) {
@@ -37,10 +29,10 @@ class TokenCreator {
         }
       };
 
-      // Upload metadata to Arweave
-      console.log('📤 Uploading metadata to Arweave...');
-      const metadataUri = await this.umi.uploader.uploadJson(metadata);
-      console.log('✅ Metadata uploaded:', metadataUri);
+      // For now, return a placeholder metadata URI
+      // In production, you'd upload to IPFS/Arweave here
+      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
+      console.log('✅ Metadata URI prepared:', metadataUri);
 
       // Create mint keypair
       const mintKeypair = Keypair.generate();
