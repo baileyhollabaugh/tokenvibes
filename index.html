@@ -208,7 +208,7 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.1 - METADATA FIX + SUCCESS PAGE 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.2 - FINAL METADATA FIX 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
         console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
@@ -839,7 +839,9 @@
                 offset += 4;
                 
                 // Metadata content
-                metadataBuffer.copy(data, offset);
+                for (let i = 0; i < metadataBuffer.length; i++) {
+                    data[offset + i] = metadataBuffer[i];
+                }
                 
                 return new solanaWeb3.TransactionInstruction({
                     keys: [
