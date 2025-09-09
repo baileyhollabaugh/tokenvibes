@@ -12,62 +12,86 @@
     <script src="https://unpkg.com/@solana/web3.js@1.78.4/lib/index.iife.min.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@0.1.8/lib/index.iife.min.js"></script>
     
-    <!-- Simple and reliable Buffer polyfill -->
+    <!-- Enhanced Buffer polyfill for Solana Web3.js compatibility -->
     <script>
-        // Simple Buffer polyfill that just uses Uint8Array
+        // Enhanced Buffer polyfill that extends Uint8Array with Buffer methods
         (function() {
             'use strict';
             
-            // Buffer is just Uint8Array with some additional methods
-            function Buffer(arg) {
-                if (!(this instanceof Buffer)) {
-                    return new Buffer(arg);
-                }
-                
-                let data;
-                if (typeof arg === 'number') {
-                    data = new Uint8Array(arg);
-                } else if (typeof arg === 'string') {
-                    const bytes = [];
-                    for (let i = 0; i < arg.length; i++) {
-                        bytes.push(arg.charCodeAt(i));
+            // Create a proper Buffer class that extends Uint8Array
+            class Buffer extends Uint8Array {
+                constructor(arg) {
+                    let data;
+                    if (typeof arg === 'number') {
+                        data = new Uint8Array(arg);
+                    } else if (typeof arg === 'string') {
+                        const bytes = [];
+                        for (let i = 0; i < arg.length; i++) {
+                            bytes.push(arg.charCodeAt(i));
+                        }
+                        data = new Uint8Array(bytes);
+                    } else if (arg instanceof Array) {
+                        data = new Uint8Array(arg);
+                    } else if (arg instanceof ArrayBuffer) {
+                        data = new Uint8Array(arg);
+                    } else if (arg instanceof Uint8Array) {
+                        data = new Uint8Array(arg);
+                    } else {
+                        data = new Uint8Array(0);
                     }
-                    data = new Uint8Array(bytes);
-                } else if (arg instanceof Array) {
-                    data = new Uint8Array(arg);
-                } else if (arg instanceof ArrayBuffer) {
-                    data = new Uint8Array(arg);
-                } else if (arg instanceof Uint8Array) {
-                    data = new Uint8Array(arg);
-                } else {
-                    data = new Uint8Array(0);
+                    
+                    super(data);
                 }
                 
-                // Just return the Uint8Array directly
-                return data;
+                // Add toBuffer method that Solana Web3.js expects
+                toBuffer() {
+                    return new Uint8Array(this);
+                }
+                
+                // Add toString method
+                toString(encoding = 'utf8') {
+                    if (encoding === 'hex') {
+                        return Array.from(this).map(b => b.toString(16).padStart(2, '0')).join('');
+                    }
+                    return String.fromCharCode.apply(null, this);
+                }
+                
+                // Add slice method that returns Buffer
+                slice(start, end) {
+                    const sliced = super.slice(start, end);
+                    return new Buffer(sliced);
+                }
             }
             
             // Static methods
             Buffer.from = function(data, encoding) {
                 if (typeof data === 'string') {
-                    const bytes = [];
-                    for (let i = 0; i < data.length; i++) {
-                        bytes.push(data.charCodeAt(i));
+                    if (encoding === 'hex') {
+                        const bytes = [];
+                        for (let i = 0; i < data.length; i += 2) {
+                            bytes.push(parseInt(data.substr(i, 2), 16));
+                        }
+                        return new Buffer(bytes);
+                    } else {
+                        const bytes = [];
+                        for (let i = 0; i < data.length; i++) {
+                            bytes.push(data.charCodeAt(i));
+                        }
+                        return new Buffer(bytes);
                     }
-                    return new Uint8Array(bytes);
                 } else if (data instanceof Array) {
-                    return new Uint8Array(data);
+                    return new Buffer(data);
                 } else if (data instanceof ArrayBuffer) {
-                    return new Uint8Array(data);
+                    return new Buffer(data);
                 } else if (data instanceof Uint8Array) {
-                    return new Uint8Array(data);
+                    return new Buffer(data);
                 } else {
-                    return new Uint8Array(0);
+                    return new Buffer(0);
                 }
             };
             
             Buffer.alloc = function(size, fill) {
-                const buffer = new Uint8Array(size);
+                const buffer = new Buffer(size);
                 if (fill !== undefined) {
                     buffer.fill(fill);
                 }
@@ -75,7 +99,7 @@
             };
             
             Buffer.isBuffer = function(obj) {
-                return obj instanceof Uint8Array;
+                return obj instanceof Buffer || obj instanceof Uint8Array;
             };
             
             // Make Buffer available globally
@@ -84,7 +108,7 @@
                 global.Buffer = Buffer;
             }
             
-            console.log('✅ Simple Buffer polyfill loaded successfully');
+            console.log('✅ Enhanced Buffer polyfill loaded successfully');
         })();
     </script>
     
@@ -129,16 +153,24 @@
             console.log('✅ Buffer is Uint8Array:', testBuffer instanceof Uint8Array);
             console.log('✅ Buffer constructor:', testBuffer.constructor.name);
             
+            // Test toBuffer method (critical for Solana Web3.js)
+            const toBufferTest = testBuffer.toBuffer();
+            console.log('✅ toBuffer method working:', toBufferTest instanceof Uint8Array);
+            
+            // Test hex encoding
+            const hexBuffer = Buffer.from('48656c6c6f', 'hex');
+            console.log('✅ Hex encoding working:', hexBuffer.toString());
+            
         } catch (error) {
             console.error('❌ Buffer is not working:', error);
             console.error('Available Buffer methods:', Object.keys(Buffer || {}));
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.1 - SIMPLE BUFFER 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.2 - ENHANCED BUFFER 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Simple Buffer = Uint8Array + No fees + Hardcoded rent!');
+        console.log('✅ Enhanced Buffer = Uint8Array + toBuffer() + No fees + Hardcoded rent!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -641,6 +673,16 @@
             // Start logo animation
             animateLogo();
             
+            // Check if Solana Web3.js loaded properly
+            if (typeof solanaWeb3 === 'undefined') {
+                console.error('❌ Solana Web3.js library failed to load!');
+                showMessage('Failed to load Solana Web3.js library. Please refresh the page.', 'error');
+                return;
+            }
+            
+            console.log('✅ Solana Web3.js library loaded successfully');
+            console.log('Available Solana Web3 methods:', Object.keys(solanaWeb3));
+            
             // Initialize Solana connection with fallback support
             initializeSolanaConnection();
             
@@ -1085,8 +1127,20 @@
                 }
                 
                 // Create mint keypair
+                console.log('About to generate mint keypair...');
+                console.log('solanaWeb3 available:', typeof solanaWeb3);
+                console.log('Keypair available:', typeof solanaWeb3.Keypair);
+                console.log('generate method available:', typeof solanaWeb3.Keypair.generate);
+                
                 const mint = solanaWeb3.Keypair.generate();
-                console.log('Mint keypair generated:', mint.publicKey.toString());
+                console.log('Mint keypair generated:', mint);
+                console.log('Mint publicKey:', mint.publicKey ? mint.publicKey.toString() : 'UNDEFINED');
+                console.log('Mint secretKey length:', mint.secretKey ? mint.secretKey.length : 'UNDEFINED');
+                
+                // Verify the keypair was created properly
+                if (!mint || !mint.publicKey) {
+                    throw new Error('Failed to generate mint keypair - publicKey is undefined');
+                }
                 
                 // Get recipient public key
                 const recipient = new solanaWeb3.PublicKey(formData.sendTo);
