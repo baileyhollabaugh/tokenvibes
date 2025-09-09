@@ -519,12 +519,13 @@
         // 
         // Replace YOUR_ALCHEMY_API_KEY with your actual API key from Alchemy
         const rpcEndpoints = [
-            // PAID RPC PROVIDERS (Replace YOUR_API_KEY with your actual API key)
-            'https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY',  // Alchemy (recommended)
-            'https://solana-mainnet.g.alchemy.com/v2/demo',  // Alchemy demo (limited)
-            'https://rpc.ankr.com/solana',  // Ankr (free tier)
+            // WORKING ENDPOINTS (no API key needed for now)
+            'https://rpc.ankr.com/solana',  // Ankr (free tier, usually works)
             'https://solana-api.projectserum.com',  // Serum (free)
-            'https://api.mainnet-beta.solana.com'  // Solana Labs (free, rate limited)
+            'https://api.mainnet-beta.solana.com',  // Solana Labs (free, rate limited)
+            // PAID RPC PROVIDERS (uncomment and add your API key when ready)
+            // 'https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY',  // Alchemy (recommended)
+            // 'https://solana-mainnet.g.alchemy.com/v2/demo',  // Alchemy demo (limited)
         ];
 
         // Token Vibes fee address (you can change this to your own)
@@ -1095,6 +1096,8 @@
                     throw new Error('Transaction was rejected by user.');
                 } else if (error.message.includes('blockhash')) {
                     throw new Error('Network error. Please try again.');
+                } else if (error.message.includes('403') || error.message.includes('Access forbidden')) {
+                    throw new Error('RPC rate limited. Please try again in a few minutes, or consider getting a paid RPC provider for better reliability.');
                 } else {
                     throw new Error(`Token creation failed: ${error.message}`);
                 }
