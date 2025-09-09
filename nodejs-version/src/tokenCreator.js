@@ -3,6 +3,7 @@ const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
 const { createFungible } = require('@metaplex-foundation/mpl-token-metadata');
 const { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } = require('@metaplex-foundation/mpl-toolbox');
 const { irysUploader } = require('@metaplex-foundation/umi-uploader-irys');
+const { generateSigner, signerIdentity } = require('@metaplex-foundation/umi');
 
 class TokenCreator {
   constructor() {
@@ -56,41 +57,44 @@ class TokenCreator {
       // Use the destination address for the token account
       const destinationPublicKey = new PublicKey(tokenData.destinationAddress);
       
+      // Set up Umi with a signer
+      const umiWithSigner = this.umi.use(signerIdentity(tempWalletKeypair));
+      
       // Create the token with metadata using Metaplex
       console.log('🪙 Creating token with Metaplex...');
-      const createFungibleResult = await createFungible(this.umi, {
+      const createFungibleResult = await createFungible(umiWithSigner, {
         mint: mintKeypair,
         name: tokenData.name,
         uri: metadataUri,
         sellerFeeBasisPoints: 0,
         decimals: tokenData.decimals,
         mintAuthority: tempWalletKeypair,
-      }).sendAndConfirm(this.umi);
+      }).sendAndConfirm(umiWithSigner);
 
       console.log('✅ Token created successfully');
 
       // Create associated token account if needed
       console.log('🏦 Creating associated token account...');
-      const associatedTokenPda = findAssociatedTokenPda(this.umi, {
+      const associatedTokenPda = findAssociatedTokenPda(umiWithSigner, {
         mint: mintKeypair.publicKey,
         owner: destinationPublicKey,
       });
 
-      await createTokenIfMissing(this.umi, {
+      await createTokenIfMissing(umiWithSigner, {
         mint: mintKeypair.publicKey,
         owner: destinationPublicKey,
-      }).sendAndConfirm(this.umi);
+      }).sendAndConfirm(umiWithSigner);
 
       // Mint tokens
       console.log('💰 Minting tokens...');
       const mintAmount = BigInt(tokenData.quantity) * BigInt(10 ** tokenData.decimals);
       
-      await mintTokensTo(this.umi, {
+      await mintTokensTo(umiWithSigner, {
         mint: mintKeypair.publicKey,
         destination: associatedTokenPda,
         amount: mintAmount,
         mintAuthority: tempWalletKeypair,
-      }).sendAndConfirm(this.umi);
+      }).sendAndConfirm(umiWithSigner);
 
       console.log('✅ Tokens minted successfully');
 

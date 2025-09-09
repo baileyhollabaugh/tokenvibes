@@ -59,6 +59,11 @@ window.addEventListener('load', async () => {
             console.log('Wallet not connected');
         }
     }
+    
+    // Handle file upload click
+    document.getElementById('fileUpload').addEventListener('click', () => {
+        document.getElementById('image').click();
+    });
 });
 
 document.getElementById('tokenForm').addEventListener('submit', async (e) => {
