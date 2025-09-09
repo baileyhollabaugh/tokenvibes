@@ -514,6 +514,7 @@
             
             // Initialize Solana connection (using mainnet for production)
             connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
+            console.log('Solana connection initialized:', connection);
             
             // Set up event listeners
             setupEventListeners();
@@ -745,13 +746,26 @@
                 return;
             }
             
+            // Verify wallet is still connected
+            if (!window.solana || !window.solana.isConnected) {
+                console.log('Wallet connection lost');
+                showMessage('Wallet connection lost. Please reconnect your wallet.', 'error');
+                wallet = null;
+                updateWalletStatus(false);
+                return;
+            }
+            
             console.log('Wallet is connected:', wallet.toString());
             
             // Check SOL balance
             try {
+                console.log('Checking SOL balance for wallet:', wallet.toString());
                 const balance = await connection.getBalance(wallet);
                 const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
                 const requiredBalance = TOKEN_VIBES_FEE_AMOUNT + 0.01; // Fee + estimated transaction costs
+                
+                console.log(`Current SOL balance: ${solBalance.toFixed(4)} SOL`);
+                console.log(`Required balance: ${requiredBalance} SOL`);
                 
                 if (solBalance < requiredBalance) {
                     showMessage(`Insufficient SOL balance. You need at least ${requiredBalance} SOL (you have ${solBalance.toFixed(4)} SOL)`, 'error');
@@ -761,8 +775,21 @@
                 console.log(`SOL balance check passed: ${solBalance.toFixed(4)} SOL available`);
             } catch (error) {
                 console.error('Failed to check SOL balance:', error);
-                showMessage('Failed to check wallet balance. Please try again.', 'error');
-                return;
+                console.error('Error details:', error.message);
+                
+                // Ask user if they want to continue without balance check
+                const continueWithoutCheck = confirm(
+                    'Unable to check your SOL balance. This might be due to network issues.\n\n' +
+                    'Do you want to continue with token creation anyway?\n\n' +
+                    'Note: You need at least 0.02 SOL (0.01 SOL fee + transaction costs) to create a token.'
+                );
+                
+                if (!continueWithoutCheck) {
+                    showMessage('Token creation cancelled. Please try again later.', 'warning');
+                    return;
+                }
+                
+                console.log('Continuing with token creation without balance check');
             }
             
             // Get and validate form data
@@ -1007,3 +1034,4 @@
     </script>
 </body>
 </html>
+
