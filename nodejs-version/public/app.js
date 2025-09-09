@@ -74,18 +74,24 @@ async function createTokenWithPhantom(tokenData) {
         console.log('🚀 Creating token with Phantom wallet...');
         
         // First, prepare metadata on backend
-        const formData = new FormData();
-        formData.append('name', tokenData.name);
-        formData.append('symbol', tokenData.symbol);
-        formData.append('description', tokenData.description);
-        formData.append('quantity', tokenData.quantity);
-        formData.append('destinationAddress', tokenData.destinationAddress);
-        formData.append('walletAddress', walletAddress);
-        formData.append('decimals', '9');
+        const requestData = {
+            name: tokenData.name,
+            symbol: tokenData.symbol,
+            description: tokenData.description,
+            quantity: tokenData.quantity,
+            destinationAddress: tokenData.destinationAddress,
+            walletAddress: walletAddress,
+            decimals: 9
+        };
+        
+        console.log('Sending data:', requestData);
         
         const response = await fetch('/api/tokens/create', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
         });
         
         const data = await response.json();
