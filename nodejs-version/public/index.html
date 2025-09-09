@@ -202,8 +202,14 @@
 
         <div class="form-container">
             <div class="wallet-info">
-                <h4>🔑 Wallet Setup Required</h4>
-                <p>You need to provide your wallet's private key to create tokens. This is used to sign the transaction and set you as the mint authority.</p>
+                <h4>🔗 Connect Your Phantom Wallet</h4>
+                <p>Connect your Phantom wallet to create tokens. Your private key stays secure in your wallet - we never see it!</p>
+                <button id="connectWallet" class="btn" style="background: linear-gradient(135deg, #8A2BE2, #9932CC); margin-bottom: 20px;">
+                    🦄 Connect Phantom Wallet
+                </button>
+                <div id="walletStatus" style="display: none; background: #e8f5e8; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+                    <strong>✅ Connected:</strong> <span id="walletAddress"></span>
+                </div>
             </div>
 
             <form id="tokenForm">
@@ -245,13 +251,9 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="walletPrivateKey">Wallet Private Key *</label>
-                    <input type="text" id="walletPrivateKey" name="walletPrivateKey" required 
-                           placeholder="Paste your wallet's private key array here">
-                    <p style="font-size: 12px; color: #999; margin-top: 5px;">
-                        Format: [1,2,3,4...] (64 numbers)
-                    </p>
+                <div class="form-group" id="walletPrivateKeyGroup" style="display: none;">
+                    <label>Wallet Connected</label>
+                    <p style="color: #00b894; font-weight: 600;">✅ Phantom wallet connected securely</p>
                 </div>
 
                 <button type="submit" class="btn" id="submitBtn">
@@ -272,8 +274,70 @@
     </div>
 
     <script>
+        let wallet = null;
+        let walletAddress = null;
+
+        // Check if Phantom is installed
+        const getProvider = () => {
+            if ('solana' in window) {
+                const provider = window.solana;
+                if (provider.isPhantom) {
+                    return provider;
+                }
+            }
+            return null;
+        };
+
+        // Connect to Phantom wallet
+        document.getElementById('connectWallet').addEventListener('click', async () => {
+            try {
+                const provider = getProvider();
+                if (!provider) {
+                    alert('Phantom wallet not found! Please install Phantom wallet extension.');
+                    return;
+                }
+
+                const response = await provider.connect();
+                wallet = provider;
+                walletAddress = response.publicKey.toString();
+                
+                document.getElementById('walletStatus').style.display = 'block';
+                document.getElementById('walletAddress').textContent = walletAddress;
+                document.getElementById('connectWallet').style.display = 'none';
+                document.getElementById('walletPrivateKeyGroup').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Failed to connect wallet:', error);
+                alert('Failed to connect wallet. Please try again.');
+            }
+        });
+
+        // Check if wallet is already connected
+        window.addEventListener('load', async () => {
+            const provider = getProvider();
+            if (provider && provider.isConnected) {
+                try {
+                    const response = await provider.connect();
+                    wallet = provider;
+                    walletAddress = response.publicKey.toString();
+                    
+                    document.getElementById('walletStatus').style.display = 'block';
+                    document.getElementById('walletAddress').textContent = walletAddress;
+                    document.getElementById('connectWallet').style.display = 'none';
+                    document.getElementById('walletPrivateKeyGroup').style.display = 'block';
+                } catch (error) {
+                    console.log('Wallet not connected');
+                }
+            }
+        });
+
         document.getElementById('tokenForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            if (!wallet || !walletAddress) {
+                alert('Please connect your Phantom wallet first!');
+                return;
+            }
             
             const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
@@ -287,6 +351,7 @@
             
             try {
                 const formData = new FormData(e.target);
+                formData.append('walletAddress', walletAddress);
                 
                 const response = await fetch('/api/tokens/create', {
                     method: 'POST',

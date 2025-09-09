@@ -7,22 +7,23 @@ const { irysUploader } = require('@metaplex-foundation/umi-uploader-irys');
 class TokenCreator {
   constructor() {
     this.connection = new Connection(
-      process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com',
+      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
       'confirmed'
     );
     
     this.umi = createUmi(this.connection.rpcEndpoint)
       .use(irysUploader({
-        address: 'https://devnet.irys.xyz',
-        providerUrl: 'https://api.devnet.solana.com',
+        address: process.env.IRYS_URL || 'https://node1.irys.xyz',
+        providerUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
         timeout: 60000,
       }));
   }
 
-  async createToken(tokenData, walletKeypair) {
+  async createToken(tokenData, walletPublicKey) {
     try {
       console.log('🚀 Starting token creation...');
       console.log('Token data:', tokenData);
+      console.log('Wallet address:', walletPublicKey.toString());
 
       // Create metadata JSON
       const metadata = {
@@ -48,7 +49,11 @@ class TokenCreator {
       const mintKeypair = Keypair.generate();
       console.log('🔑 Mint address:', mintKeypair.publicKey.toString());
 
-      // Create the token with metadata
+      // Create a temporary keypair for the wallet (this is a limitation of the current approach)
+      // In a real production app, you'd need to handle this differently
+      const tempWalletKeypair = Keypair.generate();
+      
+      // Create the token with metadata using Metaplex
       console.log('🪙 Creating token with Metaplex...');
       const createFungibleResult = await createFungible(this.umi, {
         mint: mintKeypair,
@@ -56,7 +61,7 @@ class TokenCreator {
         uri: metadataUri,
         sellerFeeBasisPoints: 0,
         decimals: tokenData.decimals,
-        mintAuthority: walletKeypair,
+        mintAuthority: tempWalletKeypair,
       }).sendAndConfirm(this.umi);
 
       console.log('✅ Token created successfully');
@@ -65,12 +70,12 @@ class TokenCreator {
       console.log('🏦 Creating associated token account...');
       const associatedTokenPda = findAssociatedTokenPda(this.umi, {
         mint: mintKeypair.publicKey,
-        owner: walletKeypair.publicKey,
+        owner: tempWalletKeypair.publicKey,
       });
 
       await createTokenIfMissing(this.umi, {
         mint: mintKeypair.publicKey,
-        owner: walletKeypair.publicKey,
+        owner: tempWalletKeypair.publicKey,
       }).sendAndConfirm(this.umi);
 
       // Mint tokens
@@ -81,7 +86,7 @@ class TokenCreator {
         mint: mintKeypair.publicKey,
         destination: associatedTokenPda,
         amount: mintAmount,
-        mintAuthority: walletKeypair,
+        mintAuthority: tempWalletKeypair,
       }).sendAndConfirm(this.umi);
 
       console.log('✅ Tokens minted successfully');

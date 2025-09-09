@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "nodejs-version/src/server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "nodejs-version/src/server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com",
+    "IRYS_URL": "https://node1.irys.xyz",
+    "PORT": "3000"
+  }
+}

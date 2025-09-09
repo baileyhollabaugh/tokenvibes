@@ -33,19 +33,17 @@ const upload = multer({
 // Create token endpoint
 router.post('/create', upload.single('image'), async (req, res) => {
   try {
-    const { name, symbol, description, quantity, decimals, walletPrivateKey } = req.body;
+    const { name, symbol, description, quantity, decimals, walletAddress } = req.body;
     
     // Validate required fields
-    if (!name || !symbol || !quantity || !walletPrivateKey) {
+    if (!name || !symbol || !quantity || !walletAddress) {
       return res.status(400).json({ 
-        error: 'Missing required fields: name, symbol, quantity, walletPrivateKey' 
+        error: 'Missing required fields: name, symbol, quantity, walletAddress' 
       });
     }
 
-    // Create wallet keypair from private key
-    const walletKeypair = Keypair.fromSecretKey(
-      new Uint8Array(JSON.parse(walletPrivateKey))
-    );
+    // Create wallet public key from address
+    const walletPublicKey = new PublicKey(walletAddress);
 
     // Prepare token data
     const tokenData = {
@@ -57,8 +55,8 @@ router.post('/create', upload.single('image'), async (req, res) => {
       imageUri: req.file ? `/uploads/${req.file.filename}` : ''
     };
 
-    // Create the token
-    const result = await tokenCreator.createToken(tokenData, walletKeypair);
+    // Create the token with full Metaplex metadata
+    const result = await tokenCreator.createToken(tokenData, walletPublicKey);
 
     res.json({
       success: true,
