@@ -7,10 +7,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
     
     <!-- Solana Web3.js and SPL Token libraries -->
     <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.3.11/dist/browser/index.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.8/dist/browser/index.iife.js"></script>
     
     <!-- Enhanced Buffer polyfill for Solana Web3.js compatibility -->
     <script>
@@ -167,10 +168,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.8 - PROPER SPL TOKEN CDN LOADING 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.9 - GROK'S SIMPLIFIED APPROACH 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Proper SPL Token CDN + window.splToken + Manual fallbacks + Enhanced Buffer!');
+        console.log('✅ Simplified createToken + Manual SPL Token + Enhanced Validation + Favicon!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -774,6 +775,9 @@
             } else {
                 console.error('❌ SPL Token library not loaded!');
                 console.log('🔧 Will use manual SPL Token functions as fallback');
+                
+                // Show user-friendly message
+                showMessage('SPL Token library failed to load. Using backup method - this may take longer.', 'warning');
             }
             
             // Add PublicKey toBuffer polyfill if needed
@@ -1204,15 +1208,22 @@
                 return false;
             }
             
-            // Validate ticker
-            if (!data.ticker || data.ticker.length < 1 || data.ticker.length > 10) {
-                showMessage('Ticker must be 1-10 characters', 'error');
+            // Enhanced ticker validation (1-10 letters/numbers only, no special chars)
+            const tickerRegex = /^[A-Z0-9]{1,10}$/;
+            if (!data.ticker || !tickerRegex.test(data.ticker)) {
+                showMessage('Ticker must be 1-10 letters/numbers only (no special characters)', 'error');
                 return false;
             }
             
-            // Validate quantity
-            if (!data.quantity || data.quantity < 1 || data.quantity > 1000000000) {
-                showMessage('Quantity must be between 1 and 1,000,000,000', 'error');
+            // Enhanced quantity validation (positive integer, 1-1B)
+            if (!Number.isInteger(data.quantity) || data.quantity < 1 || data.quantity > 1000000000) {
+                showMessage('Quantity must be a whole number between 1 and 1,000,000,000', 'error');
+                return false;
+            }
+            
+            // Enhanced description validation (max 500 chars)
+            if (data.description && data.description.length > 500) {
+                showMessage('Description must be 500 characters or less', 'error');
                 return false;
             }
             
@@ -1322,33 +1333,15 @@
                 // Create mint account using the newer API approach
                 console.log('Creating mint account instruction...');
                 
-                // Debug the TOKEN_PROGRAM_ID
-                console.log('TOKEN_PROGRAM_ID:', solanaWeb3.TOKEN_PROGRAM_ID);
-                console.log('TOKEN_PROGRAM_ID type:', typeof solanaWeb3.TOKEN_PROGRAM_ID);
-                console.log('TOKEN_PROGRAM_ID has toBuffer:', solanaWeb3.TOKEN_PROGRAM_ID ? typeof solanaWeb3.TOKEN_PROGRAM_ID.toBuffer : 'UNDEFINED');
-                
-                // Test TOKEN_PROGRAM_ID toBuffer if it exists
-                if (solanaWeb3.TOKEN_PROGRAM_ID && typeof solanaWeb3.TOKEN_PROGRAM_ID.toBuffer === 'function') {
-                    try {
-                        const programIdBuffer = solanaWeb3.TOKEN_PROGRAM_ID.toBuffer();
-                        console.log('✅ TOKEN_PROGRAM_ID.toBuffer() works:', programIdBuffer);
-                    } catch (error) {
-                        console.error('❌ TOKEN_PROGRAM_ID.toBuffer() failed:', error);
-                    }
-                } else {
-                    console.error('❌ TOKEN_PROGRAM_ID.toBuffer() method not available');
-                }
-                
-                // Use the newer createAccount method with fallback TOKEN_PROGRAM_ID
-                const programIdToUse = solanaWeb3.TOKEN_PROGRAM_ID || TOKEN_PROGRAM_ID;
-                console.log('Using programId:', programIdToUse.toString());
+                // Use hardcoded TOKEN_PROGRAM_ID directly (more reliable)
+                console.log('Using hardcoded TOKEN_PROGRAM_ID:', TOKEN_PROGRAM_ID.toString());
                 
                 const createMintAccountInstruction = solanaWeb3.SystemProgram.createAccount({
                     fromPubkey: wallet,
                     newAccountPubkey: mint.publicKey,
                     space: 82, // Standard mint account size
                     lamports: rentExemption,
-                    programId: programIdToUse
+                    programId: TOKEN_PROGRAM_ID
                 });
                 
                 console.log('✅ Account instruction created successfully');
@@ -1358,52 +1351,19 @@
                 const mintAuthority = formData.retainMint ? wallet : null;
                 const freezeAuthority = formData.freezeAuthority ? wallet : null;
                 
-                // Initialize mint using the correct API
-                console.log('Creating initialize mint instruction...');
-                console.log('Available createInitializeMint functions:');
-                console.log('- solanaWeb3.createInitializeMintInstruction:', typeof solanaWeb3.createInitializeMintInstruction);
-                console.log('- window.splToken.createInitializeMintInstruction:', typeof window.splToken?.createInitializeMintInstruction);
-                console.log('- splToken.createInitializeMintInstruction:', typeof splToken?.createInitializeMintInstruction);
-                console.log('- manualSPLToken.createInitializeMintInstruction:', typeof manualSPLToken?.createInitializeMintInstruction);
+                // Initialize mint using manual SPL Token functions (simplified approach)
+                console.log('Creating initialize mint instruction using manual functions...');
                 
                 let initializeMintInstruction;
                 try {
-                    // Try the SPL Token library first (check both window.splToken and global splToken)
-                    if (typeof window.splToken?.createInitializeMintInstruction === 'function') {
-                        console.log('Using window.splToken.createInitializeMintInstruction...');
-                        initializeMintInstruction = window.splToken.createInitializeMintInstruction(
-                            mint.publicKey,
-                            formData.decimals,
-                            mintAuthority, // mint authority (null if not retaining mint ability)
-                            freezeAuthority  // freeze authority (null if not retaining freeze ability)
-                        );
-                    } else if (typeof splToken?.createInitializeMintInstruction === 'function') {
-                        console.log('Using splToken.createInitializeMintInstruction...');
-                        initializeMintInstruction = splToken.createInitializeMintInstruction(
-                            mint.publicKey,
-                            formData.decimals,
-                            mintAuthority, // mint authority (null if not retaining mint ability)
-                            freezeAuthority  // freeze authority (null if not retaining freeze ability)
-                        );
-                    } else if (typeof solanaWeb3.createInitializeMintInstruction === 'function') {
-                        console.log('Using solanaWeb3.createInitializeMintInstruction...');
-                        initializeMintInstruction = solanaWeb3.createInitializeMintInstruction(
-                            mint.publicKey,
-                            formData.decimals,
-                            mintAuthority, // mint authority (null if not retaining mint ability)
-                            freezeAuthority  // freeze authority (null if not retaining freeze ability)
-                        );
-                    } else if (typeof manualSPLToken?.createInitializeMintInstruction === 'function') {
-                        console.log('Using manualSPLToken.createInitializeMintInstruction...');
-                        initializeMintInstruction = manualSPLToken.createInitializeMintInstruction(
-                            mint.publicKey,
-                            formData.decimals,
-                            mintAuthority, // mint authority (null if not retaining mint ability)
-                            freezeAuthority  // freeze authority (null if not retaining freeze ability)
-                        );
-                    } else {
-                        throw new Error('createInitializeMintInstruction function not found in any library');
-                    }
+                    // Use manual SPL Token functions directly (more reliable)
+                    console.log('Using manualSPLToken.createInitializeMintInstruction...');
+                    initializeMintInstruction = manualSPLToken.createInitializeMintInstruction(
+                        mint.publicKey,
+                        formData.decimals,
+                        mintAuthority, // mint authority (null if not retaining mint ability)
+                        freezeAuthority  // freeze authority (null if not retaining freeze ability)
+                    );
                     console.log('✅ Initialize mint instruction created successfully');
                 } catch (error) {
                     console.error('❌ Failed to create initialize mint instruction:', error);
@@ -1418,65 +1378,23 @@
                 let createATAInstruction;
                 
                 try {
-                    // Try to get associated token address
-                    if (typeof window.splToken?.getAssociatedTokenAddressSync === 'function') {
-                        associatedTokenAccount = window.splToken.getAssociatedTokenAddressSync(
-                            mint.publicKey,
-                            recipient
-                        );
-                    } else if (typeof splToken?.getAssociatedTokenAddressSync === 'function') {
-                        associatedTokenAccount = splToken.getAssociatedTokenAddressSync(
-                            mint.publicKey,
-                            recipient
-                        );
-                    } else if (typeof solanaWeb3.getAssociatedTokenAddressSync === 'function') {
-                        associatedTokenAccount = solanaWeb3.getAssociatedTokenAddressSync(
-                            mint.publicKey,
-                            recipient
-                        );
-                    } else if (typeof manualSPLToken?.getAssociatedTokenAddressSync === 'function') {
-                        associatedTokenAccount = manualSPLToken.getAssociatedTokenAddressSync(
-                            mint.publicKey,
-                            recipient
-                        );
-                    } else {
-                        throw new Error('getAssociatedTokenAddressSync function not found');
-                    }
+                    // Use manual SPL Token functions directly (more reliable)
+                    console.log('Using manualSPLToken.getAssociatedTokenAddressSync...');
+                    associatedTokenAccount = manualSPLToken.getAssociatedTokenAddressSync(
+                        mint.publicKey,
+                        recipient
+                    );
                     
                     console.log('Associated token account:', associatedTokenAccount.toString());
                     
-                    // Try to create associated token account instruction
-                    if (typeof window.splToken?.createAssociatedTokenAccountInstruction === 'function') {
-                        createATAInstruction = window.splToken.createAssociatedTokenAccountInstruction(
-                            wallet,
-                            associatedTokenAccount,
-                            recipient,
-                            mint.publicKey
-                        );
-                    } else if (typeof splToken?.createAssociatedTokenAccountInstruction === 'function') {
-                        createATAInstruction = splToken.createAssociatedTokenAccountInstruction(
-                            wallet,
-                            associatedTokenAccount,
-                            recipient,
-                            mint.publicKey
-                        );
-                    } else if (typeof solanaWeb3.createAssociatedTokenAccountInstruction === 'function') {
-                        createATAInstruction = solanaWeb3.createAssociatedTokenAccountInstruction(
-                            wallet,
-                            associatedTokenAccount,
-                            recipient,
-                            mint.publicKey
-                        );
-                    } else if (typeof manualSPLToken?.createAssociatedTokenAccountInstruction === 'function') {
-                        createATAInstruction = manualSPLToken.createAssociatedTokenAccountInstruction(
-                            wallet,
-                            associatedTokenAccount,
-                            recipient,
-                            mint.publicKey
-                        );
-                    } else {
-                        throw new Error('createAssociatedTokenAccountInstruction function not found');
-                    }
+                    // Create associated token account instruction using manual functions
+                    console.log('Using manualSPLToken.createAssociatedTokenAccountInstruction...');
+                    createATAInstruction = manualSPLToken.createAssociatedTokenAccountInstruction(
+                        wallet,
+                        associatedTokenAccount,
+                        recipient,
+                        mint.publicKey
+                    );
                     
                     console.log('✅ Associated token account instruction created');
                     transaction.add(createATAInstruction);
@@ -1492,37 +1410,14 @@
                     
                     let mintToInstruction;
                     try {
-                        if (typeof window.splToken?.createMintToInstruction === 'function') {
-                            mintToInstruction = window.splToken.createMintToInstruction(
-                                mint.publicKey,
-                                associatedTokenAccount,
-                                wallet,
-                                mintAmount
-                            );
-                        } else if (typeof splToken?.createMintToInstruction === 'function') {
-                            mintToInstruction = splToken.createMintToInstruction(
-                                mint.publicKey,
-                                associatedTokenAccount,
-                                wallet,
-                                mintAmount
-                            );
-                        } else if (typeof solanaWeb3.createMintToInstruction === 'function') {
-                            mintToInstruction = solanaWeb3.createMintToInstruction(
-                                mint.publicKey,
-                                associatedTokenAccount,
-                                wallet,
-                                mintAmount
-                            );
-                        } else if (typeof manualSPLToken?.createMintToInstruction === 'function') {
-                            mintToInstruction = manualSPLToken.createMintToInstruction(
-                                mint.publicKey,
-                                associatedTokenAccount,
-                                wallet,
-                                mintAmount
-                            );
-                        } else {
-                            throw new Error('createMintToInstruction function not found');
-                        }
+                        // Use manual SPL Token functions directly (more reliable)
+                        console.log('Using manualSPLToken.createMintToInstruction...');
+                        mintToInstruction = manualSPLToken.createMintToInstruction(
+                            mint.publicKey,
+                            associatedTokenAccount,
+                            wallet,
+                            mintAmount
+                        );
                         
                         console.log('✅ Mint to instruction created');
                         transaction.add(mintToInstruction);
