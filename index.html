@@ -208,7 +208,7 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.0 - METADATA CREATION ADDED 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.1 - METADATA FIX + SUCCESS PAGE 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
         console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
@@ -821,11 +821,17 @@
                 offset += 1;
                 
                 // Update authority
-                updateAuthority.toBytes().copy(data, offset);
+                const updateAuthorityBytes = updateAuthority.toBytes();
+                for (let i = 0; i < 32; i++) {
+                    data[offset + i] = updateAuthorityBytes[i];
+                }
                 offset += 32;
                 
                 // Mint
-                mint.toBytes().copy(data, offset);
+                const mintBytes = mint.toBytes();
+                for (let i = 0; i < 32; i++) {
+                    data[offset + i] = mintBytes[i];
+                }
                 offset += 32;
                 
                 // Metadata length
@@ -1624,13 +1630,46 @@
         function showSuccessPage(result) {
             const detailsContainer = document.getElementById('tokenDetails');
             detailsContainer.innerHTML = `
-                <h3>Token Details</h3>
-                <p><strong>Name:</strong> ${result.name}</p>
-                <p><strong>Ticker:</strong> ${result.ticker}</p>
-                <p><strong>Quantity:</strong> ${result.quantity.toLocaleString()}</p>
-                <p><strong>Decimals:</strong> ${result.decimals}</p>
-                <p><strong>Mint Address:</strong> ${result.mintAddress}</p>
-                <p><strong>Transaction:</strong> <a href="https://explorer.solana.com/tx/${result.signature}" target="_blank" style="color: #00b894;">View on Solana Explorer</a></p>
+                <div style="background: linear-gradient(135deg, #00b894, #00a085); padding: 30px; border-radius: 15px; margin-bottom: 20px; color: white; text-align: center;">
+                    <h2 style="margin: 0 0 10px 0; font-size: 2.5em;">🎉 CONGRATULATIONS! 🎉</h2>
+                    <p style="margin: 0; font-size: 1.2em; opacity: 0.9;">You just created a token on Solana!</p>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="color: #2d3436; margin-top: 0;">📋 Token Details</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                        <div><strong>Name:</strong> ${result.name}</div>
+                        <div><strong>Symbol:</strong> ${result.ticker}</div>
+                        <div><strong>Quantity:</strong> ${result.quantity.toLocaleString()}</div>
+                        <div><strong>Decimals:</strong> ${result.decimals}</div>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Mint Address:</strong><br>
+                        <code style="background: #e9ecef; padding: 5px 10px; border-radius: 5px; word-break: break-all; display: inline-block; margin-top: 5px;">${result.mintAddress}</code>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <a href="https://solscan.io/tx/${result.signature}" target="_blank" 
+                       style="background: #00b894; color: white; padding: 15px 30px; border-radius: 25px; text-decoration: none; font-weight: bold; font-size: 1.1em; display: inline-block; margin: 10px;">
+                        🔍 View Transaction on Solscan
+                    </a>
+                    <br>
+                    <a href="https://explorer.solana.com/tx/${result.signature}" target="_blank" 
+                       style="background: #6c5ce7; color: white; padding: 10px 20px; border-radius: 20px; text-decoration: none; font-size: 0.9em; display: inline-block; margin: 10px;">
+                        📊 View on Solana Explorer
+                    </a>
+                </div>
+                
+                <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; border-left: 4px solid #00b894;">
+                    <h4 style="margin-top: 0; color: #2d3436;">✅ What Happened</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #636e72;">
+                        <li>Token mint account created successfully</li>
+                        <li>Associated token account created for your wallet</li>
+                        <li>${result.quantity.toLocaleString()} tokens minted to your wallet</li>
+                        <li>Transaction confirmed on Solana blockchain</li>
+                    </ul>
+                </div>
             `;
             
             showPage('successPage');
