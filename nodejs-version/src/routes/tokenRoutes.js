@@ -56,8 +56,8 @@ router.post('/create', upload.single('image'), async (req, res) => {
       imageUri: req.file ? `/uploads/${req.file.filename}` : ''
     };
 
-    // Create the token with full Metaplex metadata
-    const result = await tokenCreator.createToken(tokenData, walletPublicKey);
+    // Prepare metadata and return data for frontend signing
+    const result = await tokenCreator.prepareTokenMetadata(tokenData);
 
     res.json({
       success: true,

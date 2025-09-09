@@ -1,5 +1,11 @@
 let wallet = null;
 let walletAddress = null;
+let connection = null;
+
+// Initialize connection
+window.addEventListener('load', () => {
+    connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+});
 
 // Check if Phantom is installed
 const getProvider = () => {
@@ -66,6 +72,119 @@ window.addEventListener('load', async () => {
     });
 });
 
+// Create token using Phantom wallet
+async function createTokenWithPhantom(tokenData) {
+    try {
+        console.log('🚀 Creating token with Phantom wallet...');
+        
+        // First, prepare metadata on backend
+        const formData = new FormData();
+        formData.append('name', tokenData.name);
+        formData.append('symbol', tokenData.symbol);
+        formData.append('description', tokenData.description);
+        formData.append('quantity', tokenData.quantity);
+        formData.append('destinationAddress', tokenData.destinationAddress);
+        formData.append('walletAddress', walletAddress);
+        formData.append('decimals', '9');
+        
+        const response = await fetch('/api/tokens/create', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.error);
+        }
+        
+        console.log('✅ Metadata prepared:', data.data);
+        
+        // Now create the token using Solana Web3.js directly
+        const mintKeypair = solanaWeb3.Keypair.fromSecretKey(
+            new Uint8Array(data.data.mintKeypair)
+        );
+        
+        // Get rent exemption
+        const rentExemption = await connection.getMinimumBalanceForRentExemption(82);
+        
+        // Create account instruction
+        const createAccountInstruction = solanaWeb3.SystemProgram.createAccount({
+            fromPubkey: wallet.publicKey,
+            newAccountPubkey: mintKeypair.publicKey,
+            lamports: rentExemption,
+            space: 82,
+            programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+        });
+
+        // Initialize mint instruction
+        const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
+            keys: [
+                { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+                { pubkey: new solanaWeb3.PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
+            ],
+            programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+            data: Buffer.from([0, ...new Uint8Array(4), ...new Uint8Array(4), ...new Uint8Array(4)])
+        });
+
+        // Create associated token account
+        const destinationPublicKey = new solanaWeb3.PublicKey(tokenData.destinationAddress);
+        const associatedTokenAddress = await solanaWeb3.getAssociatedTokenAddress(
+            mintKeypair.publicKey,
+            destinationPublicKey
+        );
+
+        const createATAInstruction = solanaWeb3.createAssociatedTokenAccountInstruction(
+            wallet.publicKey, // payer
+            associatedTokenAddress, // ata
+            destinationPublicKey, // owner
+            mintKeypair.publicKey // mint
+        );
+
+        // Mint tokens instruction
+        const mintAmount = BigInt(tokenData.quantity) * BigInt(10 ** 9);
+        const mintTokensInstruction = solanaWeb3.createMintToInstruction(
+            mintKeypair.publicKey, // mint
+            associatedTokenAddress, // destination
+            wallet.publicKey, // authority
+            mintAmount // amount
+        );
+
+        // Create transaction
+        const transaction = new solanaWeb3.Transaction();
+        transaction.add(createAccountInstruction);
+        transaction.add(initializeMintInstruction);
+        transaction.add(createATAInstruction);
+        transaction.add(mintTokensInstruction);
+
+        // Set recent blockhash
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = wallet.publicKey;
+
+        // Sign transaction with both wallet and mint keypair
+        const signedTransaction = await wallet.signTransaction(transaction);
+        signedTransaction.partialSign(mintKeypair);
+
+        // Send transaction
+        const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+        await connection.confirmTransaction(signature);
+
+        return {
+            success: true,
+            mintAddress: mintKeypair.publicKey.toString(),
+            metadataUri: data.data.metadataUri,
+            transactionSignature: signature,
+            quantity: tokenData.quantity,
+            decimals: 9
+        };
+
+    } catch (error) {
+        console.error('Token creation failed:', error);
+        throw error;
+    }
+}
+
 document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -85,53 +204,46 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     result.style.display = 'none';
     
     try {
-        const formData = new FormData(e.target);
-        formData.append('walletAddress', walletAddress);
-        formData.append('decimals', '9'); // Always use 9 decimals
+        const tokenData = {
+            name: document.getElementById('name').value.trim(),
+            symbol: document.getElementById('symbol').value.trim().toUpperCase(),
+            description: document.getElementById('description').value.trim(),
+            quantity: parseInt(document.getElementById('quantity').value),
+            destinationAddress: document.getElementById('destinationAddress').value.trim()
+        };
+
+        const result_data = await createTokenWithPhantom(tokenData);
         
-        const response = await fetch('/api/tokens/create', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            resultContent.innerHTML = `
-                <div class="result-item">
-                    <strong>Token Name:</strong> ${data.data.name || 'N/A'}
-                </div>
-                <div class="result-item">
-                    <strong>Symbol:</strong> ${data.data.symbol || 'N/A'}
-                </div>
-                <div class="result-item">
-                    <strong>Mint Address:</strong> ${data.data.mintAddress}
-                </div>
-                <div class="result-item">
-                    <strong>Quantity:</strong> ${data.data.quantity.toLocaleString()}
-                </div>
-                <div class="result-item">
-                    <strong>Decimals:</strong> 9
-                </div>
-                <div class="result-item">
-                    <strong>Transaction:</strong> 
-                    <a href="https://explorer.solana.com/tx/${data.data.transactionSignature}" target="_blank">
-                        View on Solana Explorer
-                    </a>
-                </div>
-                <div class="result-item">
-                    <strong>Metadata:</strong> 
-                    <a href="${data.data.metadataUri}" target="_blank">
-                        View Metadata
-                    </a>
-                </div>
-            `;
-            result.className = 'result';
-        } else {
-            resultContent.innerHTML = `<p><strong>Error:</strong> ${data.error}</p>`;
-            result.className = 'result error';
-        }
-        
+        resultContent.innerHTML = `
+            <div class="result-item">
+                <strong>Token Name:</strong> ${tokenData.name}
+            </div>
+            <div class="result-item">
+                <strong>Symbol:</strong> ${tokenData.symbol}
+            </div>
+            <div class="result-item">
+                <strong>Mint Address:</strong> ${result_data.mintAddress}
+            </div>
+            <div class="result-item">
+                <strong>Quantity:</strong> ${result_data.quantity.toLocaleString()}
+            </div>
+            <div class="result-item">
+                <strong>Decimals:</strong> 9
+            </div>
+            <div class="result-item">
+                <strong>Transaction:</strong> 
+                <a href="https://explorer.solana.com/tx/${result_data.transactionSignature}" target="_blank">
+                    View on Solana Explorer
+                </a>
+            </div>
+            <div class="result-item">
+                <strong>Metadata:</strong> 
+                <a href="${result_data.metadataUri}" target="_blank">
+                    View Metadata
+                </a>
+            </div>
+        `;
+        result.className = 'result';
         result.style.display = 'block';
         
     } catch (error) {
