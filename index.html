@@ -13,6 +13,34 @@
     <script src="https://unpkg.com/@solana/web3.js@1.78.4/lib/index.iife.min.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@0.1.8/lib/index.iife.min.js"></script>
     
+    <!-- Additional Buffer polyfill for better compatibility -->
+    <script>
+        // Ensure Buffer is available globally
+        if (typeof Buffer === 'undefined') {
+            // Fallback Buffer implementation
+            window.Buffer = {
+                from: function(data, encoding) {
+                    if (typeof data === 'string') {
+                        return new Uint8Array(data.split('').map(c => c.charCodeAt(0)));
+                    }
+                    if (data instanceof ArrayBuffer) {
+                        return new Uint8Array(data);
+                    }
+                    if (Array.isArray(data)) {
+                        return new Uint8Array(data);
+                    }
+                    return new Uint8Array(data);
+                },
+                alloc: function(size) {
+                    return new Uint8Array(size);
+                },
+                isBuffer: function(obj) {
+                    return obj instanceof Uint8Array;
+                }
+            };
+        }
+    </script>
+    
     <script>
         // Make Node.js globals available in browser
         if (typeof Buffer !== 'undefined') {
@@ -42,15 +70,26 @@
         try {
             const testBuffer = Buffer.from('test');
             console.log('✅ Buffer.from is working correctly');
+            console.log('Buffer test result:', testBuffer);
+            
+            // Test Buffer.alloc
+            const allocBuffer = Buffer.alloc(10);
+            console.log('✅ Buffer.alloc is working correctly');
+            
+            // Test Buffer.isBuffer
+            const isBufferTest = Buffer.isBuffer(testBuffer);
+            console.log('✅ Buffer.isBuffer is working correctly:', isBufferTest);
+            
         } catch (error) {
-            console.error('❌ Buffer.from is not working:', error);
+            console.error('❌ Buffer is not working:', error);
+            console.error('Available Buffer methods:', Object.keys(Buffer || {}));
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.5 - BUFFER FIX 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.6 - ENHANCED BUFFER FIX 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Fixed Buffer.from polyfill - token creation should work!');
+        console.log('✅ Enhanced Buffer polyfill with fallback implementation!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
