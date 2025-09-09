@@ -12,16 +12,16 @@
     <script src="https://unpkg.com/@solana/web3.js@1.78.4/lib/index.iife.min.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@0.1.8/lib/index.iife.min.js"></script>
     
-    <!-- Complete Buffer polyfill implementation -->
+    <!-- Simple and reliable Buffer polyfill -->
     <script>
-        // Complete Buffer polyfill implementation
+        // Simple Buffer polyfill that just uses Uint8Array
         (function() {
             'use strict';
             
-            // Buffer constructor that extends Uint8Array
-            function Buffer(arg, encodingOrOffset, length) {
+            // Buffer is just Uint8Array with some additional methods
+            function Buffer(arg) {
                 if (!(this instanceof Buffer)) {
-                    return new Buffer(arg, encodingOrOffset, length);
+                    return new Buffer(arg);
                 }
                 
                 let data;
@@ -43,21 +43,9 @@
                     data = new Uint8Array(0);
                 }
                 
-                // Properly call Uint8Array constructor with 'new'
-                const uint8Array = new Uint8Array(data);
-                // Copy all properties from Uint8Array to this
-                for (let i = 0; i < uint8Array.length; i++) {
-                    this[i] = uint8Array[i];
-                }
-                this.length = uint8Array.length;
-                this.buffer = uint8Array.buffer;
-                this.byteLength = uint8Array.byteLength;
-                this.byteOffset = uint8Array.byteOffset;
+                // Just return the Uint8Array directly
+                return data;
             }
-            
-            // Make Buffer extend Uint8Array
-            Buffer.prototype = Object.create(Uint8Array.prototype);
-            Buffer.prototype.constructor = Buffer;
             
             // Static methods
             Buffer.from = function(data, encoding) {
@@ -66,20 +54,20 @@
                     for (let i = 0; i < data.length; i++) {
                         bytes.push(data.charCodeAt(i));
                     }
-                    return new Buffer(bytes);
+                    return new Uint8Array(bytes);
                 } else if (data instanceof Array) {
-                    return new Buffer(data);
+                    return new Uint8Array(data);
                 } else if (data instanceof ArrayBuffer) {
-                    return new Buffer(data);
+                    return new Uint8Array(data);
                 } else if (data instanceof Uint8Array) {
-                    return new Buffer(data);
+                    return new Uint8Array(data);
                 } else {
-                    return new Buffer(0);
+                    return new Uint8Array(0);
                 }
             };
             
             Buffer.alloc = function(size, fill) {
-                const buffer = new Buffer(size);
+                const buffer = new Uint8Array(size);
                 if (fill !== undefined) {
                     buffer.fill(fill);
                 }
@@ -87,49 +75,7 @@
             };
             
             Buffer.isBuffer = function(obj) {
-                return obj instanceof Buffer;
-            };
-            
-            // Instance methods
-            Buffer.prototype.toString = function(encoding) {
-                let result = '';
-                for (let i = 0; i < this.length; i++) {
-                    result += String.fromCharCode(this[i]);
-                }
-                return result;
-            };
-            
-            Buffer.prototype.slice = function(start, end) {
-                const sliced = Uint8Array.prototype.slice.call(this, start, end);
-                return new Buffer(sliced);
-            };
-            
-            Buffer.prototype.reverse = function() {
-                const reversed = new Buffer(this.length);
-                for (let i = 0; i < this.length; i++) {
-                    reversed[i] = this[this.length - 1 - i];
-                }
-                return reversed;
-            };
-            
-            Buffer.prototype.fill = function(value, start, end) {
-                start = start || 0;
-                end = end || this.length;
-                for (let i = start; i < end; i++) {
-                    this[i] = value;
-                }
-                return this;
-            };
-            
-            Buffer.prototype.copy = function(target, targetStart, sourceStart, sourceEnd) {
-                targetStart = targetStart || 0;
-                sourceStart = sourceStart || 0;
-                sourceEnd = sourceEnd || this.length;
-                
-                for (let i = sourceStart; i < sourceEnd; i++) {
-                    target[targetStart + i - sourceStart] = this[i];
-                }
-                return sourceEnd - sourceStart;
+                return obj instanceof Uint8Array;
             };
             
             // Make Buffer available globally
@@ -138,7 +84,7 @@
                 global.Buffer = Buffer;
             }
             
-            console.log('✅ Custom Buffer polyfill loaded successfully');
+            console.log('✅ Simple Buffer polyfill loaded successfully');
         })();
     </script>
     
@@ -179,19 +125,9 @@
             // Test Buffer methods
             console.log('✅ All Buffer methods available:', Object.keys(Buffer));
             
-            // Test Buffer.reverse
-            const reverseTest = Buffer.from([1, 2, 3, 4]);
-            const reversed = reverseTest.reverse();
-            console.log('✅ Buffer.reverse is working correctly:', Array.from(reversed));
-            
-            // Test Buffer.fill
-            const fillTest = Buffer.alloc(5);
-            fillTest.fill(42);
-            console.log('✅ Buffer.fill is working correctly:', Array.from(fillTest));
-            
-            // Test Uint8Array inheritance
-            console.log('✅ Buffer extends Uint8Array:', testBuffer instanceof Uint8Array);
-            console.log('✅ Buffer is Uint8Array compatible:', testBuffer.constructor.name);
+            // Test Uint8Array compatibility
+            console.log('✅ Buffer is Uint8Array:', testBuffer instanceof Uint8Array);
+            console.log('✅ Buffer constructor:', testBuffer.constructor.name);
             
         } catch (error) {
             console.error('❌ Buffer is not working:', error);
@@ -199,10 +135,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.0 - DEMO SIMPLIFIED 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.1 - SIMPLE BUFFER 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Fixed Buffer + Removed fees + Hardcoded rent exemption!');
+        console.log('✅ Simple Buffer = Uint8Array + No fees + Hardcoded rent!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
