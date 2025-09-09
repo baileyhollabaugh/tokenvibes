@@ -1,4 +1,6 @@
-import * as splToken from 'https://cdn.jsdelivr.net/npm/@solana/spl-token@latest/+esm';
+// SPL Token constants
+const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const MINT_SIZE = 82;
 
 let wallet = null;
 let walletAddress = null;
@@ -141,37 +143,70 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
     });
 
-    // Initialize mint instruction using SPL Token library
-    const initializeMintInstruction = splToken.createInitializeMintInstruction(
-      mintKeypair.publicKey,
-      decimals,
-      wallet.publicKey, // mint authority
-      null // freeze authority
-    );
+    // Initialize mint instruction (manual implementation)
+    const initializeMintData = new Uint8Array(67);
+    initializeMintData[0] = 0; // InitializeMint instruction
+    initializeMintData[1] = decimals; // decimals
+    initializeMintData[2] = 1; // mint authority present
+    wallet.publicKey.toBytes().forEach((byte, i) => {
+      initializeMintData[3 + i] = byte;
+    });
+    initializeMintData[35] = 0; // freeze authority absent
+
+    const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+        { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: initializeMintData
+    });
 
     // Create associated token account
     const destinationPublicKey = new solanaWeb3.PublicKey(destAddress);
-    const associatedTokenAddress = await splToken.getAssociatedTokenAddress(
-      mintKeypair.publicKey,
-      destinationPublicKey
-    );
+    const associatedTokenAddress = await solanaWeb3.PublicKey.findProgramAddress(
+      [
+        destinationPublicKey.toBytes(),
+        TOKEN_PROGRAM_ID.toBytes(),
+        mintKeypair.publicKey.toBytes(),
+      ],
+      new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+    ).then(([address]) => address);
 
-    const createATAInstruction = splToken.createAssociatedTokenAccountInstruction(
-      wallet.publicKey, // payer
-      associatedTokenAddress, // associated token account
-      destinationPublicKey, // owner
-      mintKeypair.publicKey // mint
-    );
+    const createATAInstruction = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
+        { pubkey: destinationPublicKey, isSigner: false, isWritable: false },
+        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+      ],
+      programId: new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+      data: new Uint8Array(0)
+    });
 
     // Mint tokens instruction
     const mintAmount = BigInt(tokenQuantity) * BigInt(10 ** 9);
 
-    const mintTokensInstruction = splToken.createMintToInstruction(
-      mintKeypair.publicKey, // mint
-      associatedTokenAddress, // destination
-      wallet.publicKey, // authority
-      mintAmount // amount
-    );
+    const mintToData = new Uint8Array(9);
+    mintToData[0] = 7; // MintTo instruction
+    const amountBytes = new Uint8Array(8);
+    for (let i = 0; i < 8; i++) {
+      amountBytes[i] = Number((mintAmount >> BigInt(i * 8)) & BigInt(0xFF));
+    }
+    mintToData.set(amountBytes, 1);
+
+    const mintTokensInstruction = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+        { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: false }
+      ],
+      programId: TOKEN_PROGRAM_ID,
+      data: mintToData
+    });
 
     // Create transaction
     const transaction = new solanaWeb3.Transaction();
