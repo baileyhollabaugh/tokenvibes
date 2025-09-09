@@ -208,7 +208,7 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.5 - SIMPLIFIED FOR RELIABILITY 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 12.0 - PROPER METADATA IMPLEMENTATION 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
         console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
@@ -863,6 +863,91 @@
         
         console.log('✅ Manual SPL Token functions defined as fallback');
 
+        // Create Token Metadata Instruction using Metaplex Token Metadata Program
+        function createTokenMetadataInstruction(mint, name, symbol, description, updateAuthority) {
+            // Token Metadata Program ID
+            const TOKEN_METADATA_PROGRAM_ID = new solanaWeb3.PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+            
+            // Derive metadata account address
+            const [metadataAccount] = solanaWeb3.PublicKey.findProgramAddressSync(
+                [
+                    Buffer.from('metadata'),
+                    TOKEN_METADATA_PROGRAM_ID.toBytes(),
+                    mint.toBytes()
+                ],
+                TOKEN_METADATA_PROGRAM_ID
+            );
+            
+            // Create metadata JSON
+            const metadata = {
+                name: name,
+                symbol: symbol,
+                description: description,
+                image: '', // Empty for now - can be added later
+                attributes: [],
+                properties: {
+                    files: [],
+                    category: 'image'
+                }
+            };
+            
+            // Convert metadata to buffer
+            const metadataJson = JSON.stringify(metadata);
+            const metadataBuffer = Buffer.from(metadataJson, 'utf8');
+            
+            // Create instruction data for CreateMetadataAccountV3
+            const data = Buffer.alloc(1 + 32 + 32 + 4 + 1 + 1 + metadataBuffer.length);
+            let offset = 0;
+            
+            // Instruction discriminator (CreateMetadataAccountV3 = 33)
+            data[offset] = 33;
+            offset += 1;
+            
+            // Update authority
+            const updateAuthorityBytes = updateAuthority.toBytes();
+            for (let i = 0; i < 32; i++) {
+                data[offset + i] = updateAuthorityBytes[i];
+            }
+            offset += 32;
+            
+            // Mint
+            const mintBytes = mint.toBytes();
+            for (let i = 0; i < 32; i++) {
+                data[offset + i] = mintBytes[i];
+            }
+            offset += 32;
+            
+            // Metadata length
+            data.writeUInt32LE(metadataBuffer.length, offset);
+            offset += 4;
+            
+            // Is mutable (1 = true)
+            data[offset] = 1;
+            offset += 1;
+            
+            // Update authority is signer (1 = true)
+            data[offset] = 1;
+            offset += 1;
+            
+            // Metadata content
+            for (let i = 0; i < metadataBuffer.length; i++) {
+                data[offset + i] = metadataBuffer[i];
+            }
+            
+            return new solanaWeb3.TransactionInstruction({
+                keys: [
+                    { pubkey: metadataAccount, isSigner: false, isWritable: true },
+                    { pubkey: mint, isSigner: false, isWritable: false },
+                    { pubkey: updateAuthority, isSigner: true, isWritable: false },
+                    { pubkey: updateAuthority, isSigner: true, isWritable: false },
+                    { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+                    { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+                ],
+                programId: TOKEN_METADATA_PROGRAM_ID,
+                data: data
+            });
+        }
+
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             initializeApp();
@@ -1491,16 +1576,28 @@
                 
                 transaction.add(initializeMintInstruction);
                 
-                // Create token metadata (name, symbol, description) - OPTIONAL
+                // Create token metadata (name, symbol, description)
                 console.log('Creating token metadata...');
                 console.log('📝 Metadata details:');
                 console.log('  - Name:', formData.name);
                 console.log('  - Symbol:', formData.ticker);
                 console.log('  - Description:', formData.description || 'No description');
                 
-                // Skip metadata for now to ensure transaction succeeds
-                console.log('⚠️ Skipping metadata creation to ensure transaction succeeds');
-                console.log('ℹ️ Token will work but may show as "Unknown Token" in wallets');
+                try {
+                    const metadataInstruction = createTokenMetadataInstruction(
+                        mint.publicKey,
+                        formData.name,
+                        formData.ticker,
+                        formData.description || '',
+                        wallet
+                    );
+                    transaction.add(metadataInstruction);
+                    console.log('✅ Token metadata instruction created successfully');
+                    console.log('🎯 Token will now show up in wallets with proper name and symbol!');
+                } catch (error) {
+                    console.error('❌ Failed to create metadata instruction:', error);
+                    console.log('⚠️ Continuing without metadata...');
+                }
                 
                 // Create associated token account for recipient
                 console.log('Creating associated token account...');
