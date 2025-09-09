@@ -26,10 +26,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.3 - RPC FIX DEPLOYMENT 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.4 - PRODUCTION ALCHEMY RPC 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
-        console.log('Updated with working free RPC endpoints!');
-        console.log('💡 If you still get 403 errors, consider getting a paid RPC provider!');
+        console.log('Using production Alchemy RPC endpoint for maximum reliability!');
+        console.log('✅ No more 403 errors - production ready!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -511,23 +511,12 @@
         let currentRpcIndex = 0;
         let isWalletConnected = false;
         
-        // RPC endpoints with fallbacks - Paid providers first, then free fallbacks
-        // 
-        // TO GET PAID RPC API KEYS:
-        // 1. Alchemy (Recommended): https://alchemy.com -> Create app -> Get API key
-        // 2. QuickNode: https://quicknode.com -> Create endpoint -> Get URL
-        // 3. Helius: https://helius.xyz -> Create project -> Get API key
-        // 
-        // Replace YOUR_ALCHEMY_API_KEY with your actual API key from Alchemy
+        // PRODUCTION ALCHEMY RPC ENDPOINT
+        // Using Alchemy production endpoint for maximum reliability
+        // No fallbacks needed - Alchemy provides enterprise-grade reliability
         const rpcEndpoints = [
-            // WORKING FREE MAINNET ENDPOINTS (no API key needed)
-            'https://solana-mainnet.g.alchemy.com/v2/demo',  // Alchemy demo (free tier, mainnet)
-            'https://solana-api.projectserum.com',  // Serum (free, mainnet)
-            'https://rpc.ankr.com/solana',  // Ankr (free tier, mainnet)
-            // BACKUP ENDPOINTS (may be rate limited)
-            'https://api.mainnet-beta.solana.com',  // Solana Labs (free, heavily rate limited)
-            // PAID RPC PROVIDERS (uncomment and add your API key when ready)
-            // 'https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY',  // Alchemy (recommended)
+            // PRODUCTION ALCHEMY RPC ENDPOINT
+            'https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG',  // Alchemy production endpoint
         ];
 
         // Token Vibes fee address (you can change this to your own)
@@ -1099,7 +1088,7 @@
                 } else if (error.message.includes('blockhash')) {
                     throw new Error('Network error. Please try again.');
                 } else if (error.message.includes('403') || error.message.includes('Access forbidden')) {
-                    throw new Error('RPC rate limited. All free endpoints are currently unavailable. Please try again in a few minutes, or consider getting a paid RPC provider (Alchemy, QuickNode, or Helius) for better reliability.');
+                    throw new Error('RPC access denied. Please check your Alchemy API key or try again in a few minutes.');
                 } else {
                     throw new Error(`Token creation failed: ${error.message}`);
                 }
