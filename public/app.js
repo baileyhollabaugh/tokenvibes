@@ -1,3 +1,5 @@
+import * as splToken from 'https://cdn.jsdelivr.net/npm/@solana/spl-token@latest/+esm';
+
 let wallet = null;
 let walletAddress = null;
 let connection = null;
