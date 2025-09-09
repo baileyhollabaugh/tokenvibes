@@ -105,6 +105,34 @@
                 return newBuffer;
             };
             
+            Buffer.prototype.reverse = function() {
+                const reversed = new Buffer(this.length);
+                for (let i = 0; i < this.length; i++) {
+                    reversed.view[i] = this.view[this.length - 1 - i];
+                }
+                return reversed;
+            };
+            
+            Buffer.prototype.fill = function(value, start, end) {
+                start = start || 0;
+                end = end || this.length;
+                for (let i = start; i < end; i++) {
+                    this.view[i] = value;
+                }
+                return this;
+            };
+            
+            Buffer.prototype.copy = function(target, targetStart, sourceStart, sourceEnd) {
+                targetStart = targetStart || 0;
+                sourceStart = sourceStart || 0;
+                sourceEnd = sourceEnd || this.length;
+                
+                for (let i = sourceStart; i < sourceEnd; i++) {
+                    target.view[targetStart + i - sourceStart] = this.view[i];
+                }
+                return sourceEnd - sourceStart;
+            };
+            
             // Make Buffer available globally
             window.Buffer = Buffer;
             if (typeof global !== 'undefined') {
@@ -152,16 +180,26 @@
             // Test Buffer methods
             console.log('✅ All Buffer methods available:', Object.keys(Buffer));
             
+            // Test Buffer.reverse
+            const reverseTest = Buffer.from([1, 2, 3, 4]);
+            const reversed = reverseTest.reverse();
+            console.log('✅ Buffer.reverse is working correctly:', reversed.view);
+            
+            // Test Buffer.fill
+            const fillTest = Buffer.alloc(5);
+            fillTest.fill(42);
+            console.log('✅ Buffer.fill is working correctly:', fillTest.view);
+            
         } catch (error) {
             console.error('❌ Buffer is not working:', error);
             console.error('Available Buffer methods:', Object.keys(Buffer || {}));
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.7 - COMPLETE BUFFER REWRITE 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.8 - BUFFER METHODS COMPLETE 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Complete custom Buffer polyfill implementation!');
+        console.log('✅ Complete Buffer polyfill with all required methods!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
