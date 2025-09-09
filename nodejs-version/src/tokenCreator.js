@@ -53,6 +53,9 @@ class TokenCreator {
       // In a real production app, you'd need to handle this differently
       const tempWalletKeypair = Keypair.generate();
       
+      // Use the destination address for the token account
+      const destinationPublicKey = new PublicKey(tokenData.destinationAddress);
+      
       // Create the token with metadata using Metaplex
       console.log('🪙 Creating token with Metaplex...');
       const createFungibleResult = await createFungible(this.umi, {
@@ -70,12 +73,12 @@ class TokenCreator {
       console.log('🏦 Creating associated token account...');
       const associatedTokenPda = findAssociatedTokenPda(this.umi, {
         mint: mintKeypair.publicKey,
-        owner: tempWalletKeypair.publicKey,
+        owner: destinationPublicKey,
       });
 
       await createTokenIfMissing(this.umi, {
         mint: mintKeypair.publicKey,
-        owner: tempWalletKeypair.publicKey,
+        owner: destinationPublicKey,
       }).sendAndConfirm(this.umi);
 
       // Mint tokens

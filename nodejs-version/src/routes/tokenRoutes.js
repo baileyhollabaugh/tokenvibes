@@ -33,12 +33,12 @@ const upload = multer({
 // Create token endpoint
 router.post('/create', upload.single('image'), async (req, res) => {
   try {
-    const { name, symbol, description, quantity, decimals, walletAddress } = req.body;
+    const { name, symbol, description, quantity, destinationAddress, walletAddress } = req.body;
     
     // Validate required fields
-    if (!name || !symbol || !quantity || !walletAddress) {
+    if (!name || !symbol || !quantity || !walletAddress || !destinationAddress) {
       return res.status(400).json({ 
-        error: 'Missing required fields: name, symbol, quantity, walletAddress' 
+        error: 'Missing required fields: name, symbol, quantity, walletAddress, destinationAddress' 
       });
     }
 
@@ -51,7 +51,8 @@ router.post('/create', upload.single('image'), async (req, res) => {
       symbol: symbol.trim().toUpperCase(),
       description: description?.trim() || '',
       quantity: parseInt(quantity),
-      decimals: parseInt(decimals) || 9,
+      decimals: 9, // Always use 9 decimals
+      destinationAddress: destinationAddress.trim(),
       imageUri: req.file ? `/uploads/${req.file.filename}` : ''
     };
 
