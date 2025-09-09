@@ -10,12 +10,20 @@
     
     <!-- Solana Web3.js and SPL Token libraries -->
     <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
-    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.2.0/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.78.4/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.1.8/lib/index.iife.min.js"></script>
     
     <script>
         // Make Node.js globals available in browser
         window.Buffer = Buffer;
+        
+        // Polyfill for require to prevent errors
+        if (typeof require === 'undefined') {
+            window.require = function() {
+                console.warn('require() called but not available in browser environment');
+                return {};
+            };
+        }
         
         // Debug: Check if we're loading the new version
         console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.0 - PRODUCTION READY 🚀🚀🚀');
