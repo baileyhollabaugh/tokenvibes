@@ -7,25 +7,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="https://unpkg.com/buffer@6.0.3/index.js?v=3"></script>
-    <script src="https://unpkg.com/process@0.11.10/browser.js?v=3"></script>
-    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js?v=3"></script>
     <script>
-        // Make Node.js globals available in browser
-        window.Buffer = Buffer;
-        window.process = process;
-        
-        // Add globalThis polyfill for older browsers
-        if (typeof globalThis === 'undefined') {
-            window.globalThis = window;
-        }
-        
-        // Debug: Check if Buffer is available
-        console.log('🎉🎉🎉 TOKEN VIBES VERSION 4.0 - FRESH START 🎉🎉🎉');
-        console.log('This is the NEW file that should work!');
-        console.log('Buffer available:', typeof Buffer);
-        console.log('Buffer.from available:', typeof Buffer.from);
-        console.log('If you see this message, you have the latest version!');
+        // Debug: Check if we're loading the new version
+        console.log('🎉🎉🎉 TOKEN VIBES VERSION 5.0 - NO SOLANA YET 🎉🎉🎉');
+        console.log('This version will work without Solana Web3.js!');
+        console.log('We will add Solana functionality after basic form works!');
     </script>
     <style>
         * {
@@ -804,13 +790,8 @@
             console.log('=== FORM SUBMISSION STARTED ===');
             e.preventDefault();
             
-            if (!wallet) {
-                console.log('No wallet connected');
-                showMessage('Please connect your wallet first', 'error');
-                return;
-            }
-            
-            console.log('Wallet is connected:', wallet.toString());
+            // Skip wallet check for now since we're not using Solana yet
+            console.log('🎉 Skipping wallet check - using simulation mode!');
             
             // Get and validate form data
             let formData;
@@ -936,7 +917,7 @@
 
         async function createToken(formData) {
             try {
-                console.log('Starting token creation...');
+                console.log('🎉 Starting SIMPLE token creation (no Solana yet)...');
                 console.log('Form data received:', formData);
                 
                 // Check if formData is valid
@@ -944,19 +925,11 @@
                     throw new Error('Invalid form data provided');
                 }
                 
-                // Test if Buffer is working
-                console.log('Testing Buffer...');
-                try {
-                    const testBuffer = Buffer.from('test');
-                    console.log('Buffer test successful:', testBuffer);
-                } catch (bufferError) {
-                    console.error('Buffer test failed:', bufferError);
-                    throw new Error('Buffer not working: ' + bufferError.message);
-                }
+                // Simulate a delay to make it feel real
+                console.log('⏳ Simulating token creation process...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 
-                // For now, let's just show a success message without actual transaction
-                // This will test if the form data flow works
-                console.log('Simulating successful token creation...');
+                console.log('✅ Token creation simulation successful!');
                 
                 // Show success page with the form data
                 showSuccessPage({
@@ -964,8 +937,8 @@
                     ticker: formData.ticker,
                     quantity: formData.quantity,
                     decimals: formData.decimals,
-                    mintAddress: 'TestMintAddress123456789',
-                    signature: 'TestSignature123456789'
+                    mintAddress: 'SIMULATED_MINT_ADDRESS_123456789',
+                    signature: 'SIMULATED_SIGNATURE_123456789'
                 });
                 
             } catch (error) {
