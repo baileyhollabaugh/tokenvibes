@@ -5,8 +5,8 @@
   "main": "index.html",
   "scripts": {
     "dev": "vercel dev",
-    "build": "echo 'No build step needed for static HTML'",
-    "start": "vercel dev"
+    "build": "echo 'Static site - no build needed'",
+    "start": "npx serve ."
   },
   "keywords": [
     "solana",
