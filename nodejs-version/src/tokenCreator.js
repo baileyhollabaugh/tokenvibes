@@ -1,9 +1,9 @@
 const { Connection, Keypair, PublicKey, SystemProgram } = require('@solana/web3.js');
 const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
+const { signerIdentity } = require('@metaplex-foundation/umi');
 const { createFungible } = require('@metaplex-foundation/mpl-token-metadata');
 const { createTokenIfMissing, findAssociatedTokenPda, mintTokensTo } = require('@metaplex-foundation/mpl-toolbox');
 const { irysUploader } = require('@metaplex-foundation/umi-uploader-irys');
-const { generateSigner, signerIdentity } = require('@metaplex-foundation/umi');
 
 class TokenCreator {
   constructor() {
@@ -57,8 +57,14 @@ class TokenCreator {
       // Use the destination address for the token account
       const destinationPublicKey = new PublicKey(tokenData.destinationAddress);
       
-      // Set up Umi with a signer
-      const umiWithSigner = this.umi.use(signerIdentity(tempWalletKeypair));
+      // Create a new Umi instance with the signer
+      const umiWithSigner = createUmi(this.connection.rpcEndpoint)
+        .use(irysUploader({
+          address: process.env.IRYS_URL || 'https://node1.irys.xyz',
+          providerUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+          timeout: 60000,
+        }))
+        .use(signerIdentity(tempWalletKeypair));
       
       // Create the token with metadata using Metaplex
       console.log('🪙 Creating token with Metaplex...');
