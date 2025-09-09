@@ -208,7 +208,7 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.3 - BLOCKHASH EXPIRATION FIX 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.5 - SIMPLIFIED FOR RELIABILITY 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
         console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
@@ -704,6 +704,9 @@
         // Token Vibes fee address (you can change this to your own)
         const TOKEN_VIBES_FEE_ADDRESS = 'H8qNgn3ytAq9apwuhp2JmxfGgx7ertiL3W4dED8KowM3';
         const TOKEN_VIBES_FEE_AMOUNT = 0; // 0 SOL - removed fee for demo simplicity
+        
+        // Minimum SOL balance needed for token creation (increased for safety)
+        const MIN_SOL_BALANCE = 0.05; // 0.05 SOL minimum for token creation
         
         // Define TOKEN_PROGRAM_ID explicitly (Grok's suggestion)
         const TOKEN_PROGRAM_ID = new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
@@ -1225,7 +1228,7 @@
                 }, 'SOL Balance Check');
                 
                 const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
-                const requiredBalance = 0.01; // Just estimated transaction costs (no fee)
+                const requiredBalance = MIN_SOL_BALANCE; // Use the defined minimum balance
                 
                 console.log(`Current SOL balance: ${solBalance.toFixed(4)} SOL`);
                 console.log(`Required balance: ${requiredBalance} SOL`);
@@ -1488,28 +1491,16 @@
                 
                 transaction.add(initializeMintInstruction);
                 
-                // Create token metadata (name, symbol, description)
+                // Create token metadata (name, symbol, description) - OPTIONAL
                 console.log('Creating token metadata...');
                 console.log('📝 Metadata details:');
                 console.log('  - Name:', formData.name);
                 console.log('  - Symbol:', formData.ticker);
                 console.log('  - Description:', formData.description || 'No description');
-                try {
-                    const metadataInstruction = manualSPLToken.createTokenMetadataInstruction(
-                        mint.publicKey,
-                        formData.name,
-                        formData.ticker,
-                        formData.description || '',
-                        wallet
-                    );
-                    transaction.add(metadataInstruction);
-                    console.log('✅ Token metadata instruction created successfully');
-                    console.log('🎯 Token will now show up in wallets with proper name and symbol!');
-                } catch (error) {
-                    console.error('❌ Failed to create metadata instruction:', error);
-                    // Continue without metadata - token will still work
-                    console.log('⚠️ Continuing without metadata...');
-                }
+                
+                // Skip metadata for now to ensure transaction succeeds
+                console.log('⚠️ Skipping metadata creation to ensure transaction succeeds');
+                console.log('ℹ️ Token will work but may show as "Unknown Token" in wallets');
                 
                 // Create associated token account for recipient
                 console.log('Creating associated token account...');
@@ -1604,13 +1595,32 @@
                     }
                 }
                 
-                // Wait for confirmation with RPC fallback
+                // Wait for confirmation with RPC fallback and timeout
                 console.log('Waiting for confirmation...');
-                await executeWithRpcFallback(async () => {
-                    return await connection.confirmTransaction(signature, 'confirmed');
-                }, 'Transaction Confirmation');
+                let confirmationResult;
+                try {
+                    // Add timeout to prevent hanging
+                    const confirmationPromise = executeWithRpcFallback(async () => {
+                        return await connection.confirmTransaction(signature, 'confirmed');
+                    }, 'Transaction Confirmation');
+                    
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error('Confirmation timeout after 60 seconds')), 60000);
+                    });
+                    
+                    confirmationResult = await Promise.race([confirmationPromise, timeoutPromise]);
+                    console.log('✅ Confirmation result:', confirmationResult);
+                } catch (error) {
+                    console.error('❌ Confirmation failed:', error);
+                    throw new Error(`Transaction confirmation failed: ${error.message}`);
+                }
                 
-                console.log('✅ Token creation successful!');
+                if (!confirmationResult.value.err) {
+                    console.log('✅ Token creation successful!');
+                } else {
+                    console.error('❌ Transaction failed on-chain:', confirmationResult.value.err);
+                    throw new Error(`Transaction failed on-chain: ${JSON.stringify(confirmationResult.value.err)}`);
+                }
                 
                 return {
                     name: formData.name,
