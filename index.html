@@ -10,17 +10,17 @@
     
     <!-- Solana Web3.js and SPL Token libraries -->
     <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
-    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.2.0/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.95.0/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
     
     <script>
         // Make Node.js globals available in browser
         window.Buffer = Buffer;
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 7.0 - REAL SOLANA INTEGRATION 🚀🚀🚀');
-        console.log('This version has REAL Solana Web3.js integration!');
-        console.log('Based on Solana Cookbook patterns!');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.0 - PRODUCTION READY 🚀🚀🚀');
+        console.log('This version has REAL Solana Web3.js integration on MAINNET!');
+        console.log('Ready for production token creation!');
     </script>
     
     <style>
@@ -512,8 +512,8 @@
             // Start logo animation
             animateLogo();
             
-            // Initialize Solana connection (using devnet for testing)
-            connection = new solanaWeb3.Connection('https://api.devnet.solana.com');
+            // Initialize Solana connection (using mainnet for production)
+            connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
             
             // Set up event listeners
             setupEventListeners();
@@ -581,20 +581,43 @@
                 showMessage('Phantom wallet is not installed. Please install Phantom to continue.', 'error');
                 document.getElementById('connectWalletBtn').disabled = true;
                 document.getElementById('connectWalletBtn').textContent = 'Install Phantom Wallet';
+            } else {
+                // Check if wallet is already connected
+                checkWalletConnection();
+            }
+        }
+
+        async function checkWalletConnection() {
+            if (window.solana && window.solana.isConnected && window.solana.publicKey) {
+                wallet = window.solana.publicKey;
+                await updateWalletStatus(true);
+                document.getElementById('sendToAddress').value = wallet.toString();
+                showMessage('Wallet already connected!', 'success');
             }
         }
 
         async function connectWallet() {
             try {
                 if (typeof window.solana === 'undefined') {
+                    showMessage('Phantom wallet is not installed. Please install Phantom to continue.', 'error');
                     window.open('https://phantom.app/', '_blank');
                     return;
                 }
 
-                const response = await window.solana.connect();
+                // Check if Phantom is connected
+                if (window.solana.isConnected) {
+                    wallet = window.solana.publicKey;
+                    updateWalletStatus(true);
+                    showMessage('Wallet already connected!', 'success');
+                    document.getElementById('sendToAddress').value = wallet.toString();
+                    return;
+                }
+
+                // Connect to Phantom
+                const response = await window.solana.connect({ onlyIfTrusted: false });
                 wallet = response.publicKey;
                 
-                updateWalletStatus(true);
+                await updateWalletStatus(true);
                 showMessage('Wallet connected successfully!', 'success');
                 
                 // Auto-fill send address
@@ -602,16 +625,26 @@
                 
             } catch (error) {
                 console.error('Wallet connection failed:', error);
-                showMessage('Failed to connect wallet. Please try again.', 'error');
+                if (error.code === 4001) {
+                    showMessage('Connection rejected by user. Please try again.', 'warning');
+                } else {
+                    showMessage('Failed to connect wallet. Please make sure Phantom is installed and try again.', 'error');
+                }
             }
         }
 
-        function updateWalletStatus(connected) {
+        async function updateWalletStatus(connected) {
             const statusElement = document.getElementById('walletStatus');
             const buttonElement = document.getElementById('connectWalletBtn');
             
             if (connected) {
-                statusElement.textContent = `Connected: ${wallet.toString().slice(0, 8)}...`;
+                try {
+                    const balance = await connection.getBalance(wallet);
+                    const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
+                    statusElement.textContent = `Connected: ${wallet.toString().slice(0, 8)}... (${solBalance.toFixed(4)} SOL)`;
+                } catch (error) {
+                    statusElement.textContent = `Connected: ${wallet.toString().slice(0, 8)}...`;
+                }
                 statusElement.className = 'wallet-status wallet-connected';
                 buttonElement.textContent = 'Disconnect Wallet';
                 buttonElement.onclick = disconnectWallet;
@@ -623,9 +656,9 @@
             }
         }
 
-        function disconnectWallet() {
+        async function disconnectWallet() {
             wallet = null;
-            updateWalletStatus(false);
+            await updateWalletStatus(false);
             showMessage('Wallet disconnected', 'warning');
         }
 
@@ -713,6 +746,24 @@
             }
             
             console.log('Wallet is connected:', wallet.toString());
+            
+            // Check SOL balance
+            try {
+                const balance = await connection.getBalance(wallet);
+                const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
+                const requiredBalance = TOKEN_VIBES_FEE_AMOUNT + 0.01; // Fee + estimated transaction costs
+                
+                if (solBalance < requiredBalance) {
+                    showMessage(`Insufficient SOL balance. You need at least ${requiredBalance} SOL (you have ${solBalance.toFixed(4)} SOL)`, 'error');
+                    return;
+                }
+                
+                console.log(`SOL balance check passed: ${solBalance.toFixed(4)} SOL available`);
+            } catch (error) {
+                console.error('Failed to check SOL balance:', error);
+                showMessage('Failed to check wallet balance. Please try again.', 'error');
+                return;
+            }
             
             // Get and validate form data
             let formData;
@@ -858,22 +909,26 @@
                 });
                 transaction.add(createMintAccountInstruction);
                 
-                // Initialize mint
-                const initializeMintInstruction = solanaWeb3.Token.createInitializeMintInstruction(
+                // Set mint and freeze authorities based on form settings
+                const mintAuthority = formData.retainMint ? wallet : null;
+                const freezeAuthority = formData.freezeAuthority ? wallet : null;
+                
+                // Initialize mint using the new API
+                const initializeMintInstruction = solanaWeb3.createInitializeMintInstruction(
                     mint.publicKey,
                     formData.decimals,
-                    wallet, // mint authority
-                    wallet  // freeze authority
+                    mintAuthority, // mint authority (null if not retaining mint ability)
+                    freezeAuthority  // freeze authority (null if not retaining freeze ability)
                 );
                 transaction.add(initializeMintInstruction);
                 
                 // Create associated token account for recipient
-                const associatedTokenAccount = await solanaWeb3.Token.getAssociatedTokenAddress(
+                const associatedTokenAccount = solanaWeb3.getAssociatedTokenAddressSync(
                     mint.publicKey,
                     recipient
                 );
                 
-                const createATAInstruction = solanaWeb3.Token.createAssociatedTokenAccountInstruction(
+                const createATAInstruction = solanaWeb3.createAssociatedTokenAccountInstruction(
                     wallet,
                     associatedTokenAccount,
                     recipient,
@@ -881,18 +936,20 @@
                 );
                 transaction.add(createATAInstruction);
                 
-                // Mint tokens to recipient
-                const mintAmount = formData.quantity * Math.pow(10, formData.decimals);
-                const mintToInstruction = solanaWeb3.Token.createMintToInstruction(
-                    mint.publicKey,
-                    associatedTokenAccount,
-                    wallet,
-                    mintAmount
-                );
-                transaction.add(mintToInstruction);
+                // Mint tokens to recipient (only if we have mint authority)
+                if (mintAuthority) {
+                    const mintAmount = formData.quantity * Math.pow(10, formData.decimals);
+                    const mintToInstruction = solanaWeb3.createMintToInstruction(
+                        mint.publicKey,
+                        associatedTokenAccount,
+                        wallet,
+                        mintAmount
+                    );
+                    transaction.add(mintToInstruction);
+                }
                 
                 // Get recent blockhash
-                const { blockhash } = await connection.getRecentBlockhash();
+                const { blockhash } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
                 transaction.feePayer = wallet;
                 
@@ -919,7 +976,17 @@
                 
             } catch (error) {
                 console.error('Token creation failed:', error);
-                throw error;
+                
+                // Provide more specific error messages
+                if (error.message.includes('insufficient funds')) {
+                    throw new Error('Insufficient SOL balance to create token. Please add more SOL to your wallet.');
+                } else if (error.message.includes('User rejected')) {
+                    throw new Error('Transaction was rejected by user.');
+                } else if (error.message.includes('blockhash')) {
+                    throw new Error('Network error. Please try again.');
+                } else {
+                    throw new Error(`Token creation failed: ${error.message}`);
+                }
             }
         }
 
@@ -932,7 +999,7 @@
                 <p><strong>Quantity:</strong> ${result.quantity.toLocaleString()}</p>
                 <p><strong>Decimals:</strong> ${result.decimals}</p>
                 <p><strong>Mint Address:</strong> ${result.mintAddress}</p>
-                <p><strong>Transaction:</strong> <a href="https://explorer.solana.com/tx/${result.signature}?cluster=devnet" target="_blank" style="color: #00b894;">View on Solana Explorer</a></p>
+                <p><strong>Transaction:</strong> <a href="https://explorer.solana.com/tx/${result.signature}" target="_blank" style="color: #00b894;">View on Solana Explorer</a></p>
             `;
             
             showPage('successPage');
