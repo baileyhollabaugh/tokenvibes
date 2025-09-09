@@ -18,7 +18,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.mainnet-beta.solana.com"],
+      connectSrc: ["'self'", "https://api.mainnet-beta.solana.com", "https://solana-mainnet.g.alchemy.com"],
     },
   },
 }));
