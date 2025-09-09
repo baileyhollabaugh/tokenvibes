@@ -1,5 +1,12 @@
 let wallet = null;
 let walletAddress = null;
+let connection = null;
+
+// Initialize connection
+window.addEventListener('load', () => {
+  // Use your Alchemy RPC endpoint
+  connection = new solanaWeb3.Connection('https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG', 'confirmed');
+});
 
 // Check if Phantom is installed
 const getProvider = () => {
@@ -96,7 +103,7 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       walletAddress
     };
 
-    // Create token on backend
+    // First, prepare metadata on backend
     const response = await fetch('/api/tokens/create', {
       method: 'POST',
       headers: {
@@ -111,17 +118,117 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       throw new Error(data.error);
     }
 
-    console.log('✅ Token created on backend:', data.data);
+    console.log('✅ Metadata prepared:', data.data);
 
-    // Decode base64 transaction data for browser
-    const transactionData = Uint8Array.from(atob(data.data.transaction), c => c.charCodeAt(0));
-    const transaction = solanaWeb3.Transaction.from(transactionData);
-    
-    // Sign with Phantom wallet
+    const { mintAddress, mintSecretKey, metadata, name: tokenName, symbol: tokenSymbol, description: desc, quantity: tokenQuantity, decimals, destinationAddress: destAddress } = data.data;
+
+    // Create the transaction on the frontend
+    const mintKeypair = solanaWeb3.Keypair.fromSecretKey(solanaWeb3.bs58.decode(mintSecretKey));
+
+    // Calculate rent exemption for mint account
+    const rentExemption = await connection.getMinimumBalanceForRentExemption(
+      solanaWeb3.MINT_SIZE
+    );
+
+    // Create account instruction
+    const createAccountInstruction = solanaWeb3.SystemProgram.createAccount({
+      fromPubkey: wallet.publicKey,
+      newAccountPubkey: mintKeypair.publicKey,
+      lamports: rentExemption,
+      space: solanaWeb3.MINT_SIZE,
+      programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+    });
+
+    // Initialize mint instruction
+    const initializeMintData = new Uint8Array(9);
+    initializeMintData[0] = 0; // InitializeMint instruction
+    // Encode decimals
+    initializeMintData[1] = decimals;
+    // Encode mint authority (1 for present, then 32 bytes)
+    initializeMintData[2] = 1;
+    wallet.publicKey.toBytes().forEach((byte, i) => {
+      initializeMintData[3 + i] = byte;
+    });
+    // Encode freeze authority (0 for absent)
+    initializeMintData[35] = 0;
+
+    const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+        { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+      ],
+      programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+      data: initializeMintData
+    });
+
+    // Create associated token account
+    const destinationPublicKey = new solanaWeb3.PublicKey(destAddress);
+
+    // Calculate associated token address manually
+    const associatedTokenAddress = await solanaWeb3.PublicKey.findProgramAddress(
+      [
+        destinationPublicKey.toBytes(),
+        new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA').toBytes(),
+        mintKeypair.publicKey.toBytes(),
+      ],
+      new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL')
+    ).then(([address]) => address);
+
+    const createATAInstruction = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
+        { pubkey: destinationPublicKey, isSigner: false, isWritable: false },
+        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SystemProgram.programId, isSigner: false, isWritable: false },
+        { pubkey: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'), isSigner: false, isWritable: false },
+        { pubkey: solanaWeb3.SYSVAR_RENT_PUBKEY, isSigner: false, isWritable: false }
+      ],
+      programId: new solanaWeb3.PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'),
+      data: new Uint8Array(0)
+    });
+
+    // Mint tokens instruction
+    const mintAmount = BigInt(tokenQuantity) * BigInt(10 ** 9);
+
+    // Create mint to instruction manually
+    const mintToData = new Uint8Array(9);
+    mintToData[0] = 7; // MintTo instruction
+    // Encode the amount as little-endian u64
+    const amountBytes = new Uint8Array(8);
+    const amount = mintAmount;
+    for (let i = 0; i < 8; i++) {
+      amountBytes[i] = Number((amount >> BigInt(i * 8)) & BigInt(0xFF));
+    }
+    mintToData.set(amountBytes, 1);
+
+    const mintTokensInstruction = new solanaWeb3.TransactionInstruction({
+      keys: [
+        { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
+        { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
+        { pubkey: wallet.publicKey, isSigner: true, isWritable: false }
+      ],
+      programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+      data: mintToData
+    });
+
+    // Create transaction
+    const transaction = new solanaWeb3.Transaction();
+    transaction.add(createAccountInstruction);
+    transaction.add(initializeMintInstruction);
+    transaction.add(createATAInstruction);
+    transaction.add(mintTokensInstruction);
+
+    // Set recent blockhash
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = wallet.publicKey;
+
+    // Sign transaction with both wallet and mint keypair
     const signedTransaction = await wallet.signTransaction(transaction);
-    
-    // Submit transaction
-    const connection = new solanaWeb3.Connection('https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG', 'confirmed');
+    signedTransaction.partialSign(mintKeypair);
+
+    // Send transaction
     const signature = await connection.sendRawTransaction(signedTransaction.serialize());
     await connection.confirmTransaction(signature, 'confirmed');
 
@@ -129,19 +236,19 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
 
     resultContent.innerHTML = `
       <div class="result-item">
-        <strong>Token Name:</strong> ${data.data.name || 'N/A'}
+        <strong>Token Name:</strong> ${tokenName || 'N/A'}
       </div>
       <div class="result-item">
-        <strong>Symbol:</strong> ${data.data.symbol || 'N/A'}
+        <strong>Symbol:</strong> ${tokenSymbol || 'N/A'}
       </div>
       <div class="result-item">
-        <strong>Mint Address:</strong> ${data.data.mintAddress}
+        <strong>Mint Address:</strong> ${mintAddress}
       </div>
       <div class="result-item">
-        <strong>Quantity:</strong> ${data.data.quantity.toLocaleString()}
+        <strong>Quantity:</strong> ${tokenQuantity.toLocaleString()}
       </div>
       <div class="result-item">
-        <strong>Decimals:</strong> ${data.data.decimals}
+        <strong>Decimals:</strong> ${decimals}
       </div>
       <div class="result-item">
         <strong>Transaction:</strong>
@@ -151,7 +258,7 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       </div>
       <div class="result-item">
         <strong>Metadata:</strong>
-        <a href="${data.data.metadataUri}" target="_blank">
+        <a href="${metadata.uri}" target="_blank">
           View Metadata
         </a>
       </div>
