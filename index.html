@@ -194,12 +194,12 @@
             console.log('✅ Hex encoding working:', hexBuffer.toString());
             
             // Test writeUInt32LE method
-            const testBuffer = Buffer.alloc(8);
-            testBuffer.writeUInt32LE(12345, 0);
+            const testWriteBuffer = Buffer.alloc(8);
+            testWriteBuffer.writeUInt32LE(12345, 0);
             console.log('✅ writeUInt32LE method working');
             
             // Test writeBigUInt64LE method
-            testBuffer.writeBigUInt64LE(123456789n, 4);
+            testWriteBuffer.writeBigUInt64LE(123456789n, 4);
             console.log('✅ writeBigUInt64LE method working');
             
         } catch (error) {
@@ -208,10 +208,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 10.0 - ENHANCED BUFFER METHODS 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 10.1 - TRANSACTION SIGNING FIX 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Enhanced Buffer + writeUInt32LE + writeBigUInt64LE + Manual SPL Token!');
+        console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -1474,11 +1474,26 @@
                 transaction.recentBlockhash = blockhash;
                 transaction.feePayer = wallet;
                 
+                // Add the mint keypair as a signer (required for creating the mint account)
+                console.log('Adding mint keypair as signer...');
+                transaction.partialSign(mint);
+                
                 // Sign and send transaction
                 console.log('Sending transaction to wallet for signing...');
-                const signature = await window.solana.signAndSendTransaction(transaction);
-                
-                console.log('Transaction sent:', signature);
+                let signature;
+                try {
+                    signature = await window.solana.signAndSendTransaction(transaction);
+                    console.log('Transaction sent:', signature);
+                } catch (error) {
+                    console.error('Transaction signing failed:', error);
+                    if (error.code === 4001) {
+                        throw new Error('Transaction was rejected by user');
+                    } else if (error.message.includes('insufficient funds')) {
+                        throw new Error('Insufficient SOL balance to create token');
+                    } else {
+                        throw new Error(`Transaction failed: ${error.message}`);
+                    }
+                }
                 
                 // Wait for confirmation with RPC fallback
                 console.log('Waiting for confirmation...');
