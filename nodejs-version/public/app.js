@@ -4,7 +4,8 @@ let connection = null;
 
 // Initialize connection
 window.addEventListener('load', () => {
-    connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    // Use your Alchemy RPC endpoint
+    connection = new solanaWeb3.Connection('https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG', 'confirmed');
 });
 
 // Check if Phantom is installed
