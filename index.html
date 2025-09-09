@@ -10,8 +10,8 @@
     
     <!-- Solana Web3.js and SPL Token libraries -->
     <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
-    <script src="https://unpkg.com/@solana/web3.js@1.95.0/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.2.0/lib/index.iife.min.js"></script>
     
     <script>
         // Make Node.js globals available in browser
@@ -503,8 +503,7 @@
         
         // RPC endpoints with fallbacks - Using working public endpoints
         const rpcEndpoints = [
-            'https://api.mainnet-beta.solana.com',
-            'https://solana-api.projectserum.com'
+            'https://api.mainnet-beta.solana.com'
         ];
 
         // Token Vibes fee address (you can change this to your own)
@@ -535,39 +534,16 @@
             console.log(`Solana connection initialized with endpoint ${currentRpcIndex + 1}/${rpcEndpoints.length}:`, rpcEndpoints[currentRpcIndex]);
         }
 
-        async function switchToNextRpcEndpoint() {
-            currentRpcIndex = (currentRpcIndex + 1) % rpcEndpoints.length;
-            console.log(`Switching to RPC endpoint ${currentRpcIndex + 1}/${rpcEndpoints.length}:`, rpcEndpoints[currentRpcIndex]);
-            connection = new solanaWeb3.Connection(rpcEndpoints[currentRpcIndex], 'confirmed');
-        }
-
         async function executeWithRpcFallback(operation, operationName) {
-            let lastError = null;
-            const maxRetries = rpcEndpoints.length;
-            
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-                try {
-                    console.log(`${operationName} attempt ${attempt + 1}/${maxRetries} with endpoint:`, rpcEndpoints[currentRpcIndex]);
-                    const result = await operation();
-                    return result;
-                } catch (error) {
-                    lastError = error;
-                    console.error(`${operationName} failed with endpoint ${currentRpcIndex + 1}:`, error.message);
-                    
-                    // Check if it's a 403 or network error
-                    if (error.message.includes('403') || error.message.includes('Access forbidden') || error.message.includes('fetch')) {
-                        console.log('RPC endpoint failed, trying next one...');
-                        await switchToNextRpcEndpoint();
-                        // Wait a bit before retrying
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                    } else {
-                        // If it's not an RPC error, don't retry
-                        throw error;
-                    }
-                }
+            try {
+                console.log(`${operationName} attempt with endpoint:`, rpcEndpoints[currentRpcIndex]);
+                const result = await operation();
+                console.log(`${operationName} succeeded`);
+                return result;
+            } catch (error) {
+                console.error(`${operationName} failed:`, error.message);
+                throw error;
             }
-            
-            throw new Error(`${operationName} failed on all RPC endpoints. Last error: ${lastError.message}`);
         }
 
         function animateLogo() {
