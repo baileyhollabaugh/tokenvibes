@@ -43,10 +43,16 @@
                     data = new Uint8Array(0);
                 }
                 
-                // Call Uint8Array constructor
-                Uint8Array.call(this, data);
-                this.buffer = this.buffer;
-                this.view = this;
+                // Properly call Uint8Array constructor with 'new'
+                const uint8Array = new Uint8Array(data);
+                // Copy all properties from Uint8Array to this
+                for (let i = 0; i < uint8Array.length; i++) {
+                    this[i] = uint8Array[i];
+                }
+                this.length = uint8Array.length;
+                this.buffer = uint8Array.buffer;
+                this.byteLength = uint8Array.byteLength;
+                this.byteOffset = uint8Array.byteOffset;
             }
             
             // Make Buffer extend Uint8Array
@@ -193,10 +199,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.9 - UINT8ARRAY COMPATIBLE BUFFER 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.0 - DEMO SIMPLIFIED 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Buffer now extends Uint8Array for full compatibility!');
+        console.log('✅ Fixed Buffer + Removed fees + Hardcoded rent exemption!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -636,7 +642,7 @@
 
                     <div style="text-align: center; margin-top: 40px;">
                         <button type="submit" class="btn" id="submitBtn">
-                            Create Token (0.01 SOL + fees)
+                            Create Token (Network fees only)
                         </button>
                     </div>
                 </form>
@@ -688,7 +694,7 @@
 
         // Token Vibes fee address (you can change this to your own)
         const TOKEN_VIBES_FEE_ADDRESS = 'H8qNgn3ytAq9apwuhp2JmxfGgx7ertiL3W4dED8KowM3';
-        const TOKEN_VIBES_FEE_AMOUNT = 0.01; // 0.01 SOL
+        const TOKEN_VIBES_FEE_AMOUNT = 0; // 0 SOL - removed fee for demo simplicity
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
@@ -1012,7 +1018,7 @@
                 }, 'SOL Balance Check');
                 
                 const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
-                const requiredBalance = TOKEN_VIBES_FEE_AMOUNT + 0.01; // Fee + estimated transaction costs
+                const requiredBalance = 0.01; // Just estimated transaction costs (no fee)
                 
                 console.log(`Current SOL balance: ${solBalance.toFixed(4)} SOL`);
                 console.log(`Required balance: ${requiredBalance} SOL`);
@@ -1051,8 +1057,8 @@
             const confirmed = confirm(
                 'Are you sure you want to create this token?\n\n' +
                 'This action is permanent on Solana blockchain.\n' +
-                'You will pay 0.01 SOL fee + network fees.\n' +
-                'Fee goes to Token Vibes for service.'
+                'You will pay only network fees (no service fee).\n' +
+                'This is a demo version - no charges!'
             );
             
             if (!confirmed) return;
@@ -1149,21 +1155,15 @@
                 // Get recipient public key
                 const recipient = new solanaWeb3.PublicKey(formData.sendTo);
                 
-                // Get rent exemption amount for mint with RPC fallback
-                const rentExemption = await executeWithRpcFallback(async () => {
-                    return await connection.getMinimumBalanceForRentExemption(solanaWeb3.MINT_SIZE);
-                }, 'Rent Exemption Check');
+                // Get rent exemption amount for mint (hardcoded for demo)
+                // This is the standard rent exemption for a mint account on Solana
+                const rentExemption = 1461600; // Standard mint account rent exemption in lamports
                 
                 // Create transaction
                 const transaction = new solanaWeb3.Transaction();
                 
-                // Add fee payment to Token Vibes
-                const feePaymentInstruction = solanaWeb3.SystemProgram.transfer({
-                    fromPubkey: wallet,
-                    toPubkey: new solanaWeb3.PublicKey(TOKEN_VIBES_FEE_ADDRESS),
-                    lamports: TOKEN_VIBES_FEE_AMOUNT * solanaWeb3.LAMPORTS_PER_SOL
-                });
-                transaction.add(feePaymentInstruction);
+                // No fee payment needed for demo version
+                // (Fee payment instruction removed for simplicity)
                 
                 // Create mint account
                 const createMintAccountInstruction = solanaWeb3.SystemProgram.createAccount({
