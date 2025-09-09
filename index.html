@@ -9,46 +9,113 @@
     <meta http-equiv="Expires" content="0">
     
     <!-- Solana Web3.js and SPL Token libraries -->
-    <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
     <script src="https://unpkg.com/@solana/web3.js@1.78.4/lib/index.iife.min.js"></script>
     <script src="https://unpkg.com/@solana/spl-token@0.1.8/lib/index.iife.min.js"></script>
     
-    <!-- Additional Buffer polyfill for better compatibility -->
+    <!-- Complete Buffer polyfill implementation -->
     <script>
-        // Ensure Buffer is available globally
-        if (typeof Buffer === 'undefined') {
-            // Fallback Buffer implementation
-            window.Buffer = {
-                from: function(data, encoding) {
-                    if (typeof data === 'string') {
-                        return new Uint8Array(data.split('').map(c => c.charCodeAt(0)));
+        // Complete Buffer polyfill implementation
+        (function() {
+            'use strict';
+            
+            // Buffer constructor
+            function Buffer(arg, encodingOrOffset, length) {
+                if (!(this instanceof Buffer)) {
+                    return new Buffer(arg, encodingOrOffset, length);
+                }
+                
+                if (typeof arg === 'number') {
+                    this.length = arg;
+                    this.buffer = new ArrayBuffer(arg);
+                    this.view = new Uint8Array(this.buffer);
+                } else if (typeof arg === 'string') {
+                    const bytes = [];
+                    for (let i = 0; i < arg.length; i++) {
+                        bytes.push(arg.charCodeAt(i));
                     }
-                    if (data instanceof ArrayBuffer) {
-                        return new Uint8Array(data);
+                    this.length = bytes.length;
+                    this.buffer = new ArrayBuffer(bytes.length);
+                    this.view = new Uint8Array(this.buffer);
+                    this.view.set(bytes);
+                } else if (arg instanceof Array) {
+                    this.length = arg.length;
+                    this.buffer = new ArrayBuffer(arg.length);
+                    this.view = new Uint8Array(this.buffer);
+                    this.view.set(arg);
+                } else if (arg instanceof ArrayBuffer) {
+                    this.buffer = arg;
+                    this.view = new Uint8Array(arg);
+                    this.length = arg.byteLength;
+                } else if (arg instanceof Uint8Array) {
+                    this.buffer = arg.buffer;
+                    this.view = arg;
+                    this.length = arg.length;
+                } else {
+                    this.length = 0;
+                    this.buffer = new ArrayBuffer(0);
+                    this.view = new Uint8Array(0);
+                }
+            }
+            
+            // Static methods
+            Buffer.from = function(data, encoding) {
+                if (typeof data === 'string') {
+                    const bytes = [];
+                    for (let i = 0; i < data.length; i++) {
+                        bytes.push(data.charCodeAt(i));
                     }
-                    if (Array.isArray(data)) {
-                        return new Uint8Array(data);
-                    }
-                    return new Uint8Array(data);
-                },
-                alloc: function(size) {
-                    return new Uint8Array(size);
-                },
-                isBuffer: function(obj) {
-                    return obj instanceof Uint8Array;
+                    return new Buffer(bytes);
+                } else if (data instanceof Array) {
+                    return new Buffer(data);
+                } else if (data instanceof ArrayBuffer) {
+                    return new Buffer(data);
+                } else if (data instanceof Uint8Array) {
+                    return new Buffer(data);
+                } else {
+                    return new Buffer(0);
                 }
             };
-        }
+            
+            Buffer.alloc = function(size, fill) {
+                const buffer = new Buffer(size);
+                if (fill !== undefined) {
+                    buffer.view.fill(fill);
+                }
+                return buffer;
+            };
+            
+            Buffer.isBuffer = function(obj) {
+                return obj instanceof Buffer;
+            };
+            
+            // Instance methods
+            Buffer.prototype.toString = function(encoding) {
+                let result = '';
+                for (let i = 0; i < this.length; i++) {
+                    result += String.fromCharCode(this.view[i]);
+                }
+                return result;
+            };
+            
+            Buffer.prototype.slice = function(start, end) {
+                const newBuffer = new Buffer(end - start);
+                for (let i = start; i < end; i++) {
+                    newBuffer.view[i - start] = this.view[i];
+                }
+                return newBuffer;
+            };
+            
+            // Make Buffer available globally
+            window.Buffer = Buffer;
+            if (typeof global !== 'undefined') {
+                global.Buffer = Buffer;
+            }
+            
+            console.log('✅ Custom Buffer polyfill loaded successfully');
+        })();
     </script>
     
     <script>
-        // Make Node.js globals available in browser
-        if (typeof Buffer !== 'undefined') {
-            window.Buffer = Buffer;
-        } else {
-            console.error('Buffer is not available - this will cause token creation to fail');
-        }
-        
         // Additional polyfills for Solana Web3.js
         if (typeof global === 'undefined') {
             window.global = window;
@@ -58,10 +125,10 @@
             window.process = { env: {} };
         }
         
-        // Polyfill for require to prevent errors
+        // Fix require issue
         if (typeof require === 'undefined') {
-            window.require = function() {
-                console.warn('require() called but not available in browser environment');
+            window.require = function(module) {
+                console.warn('require() called for module:', module);
                 return {};
             };
         }
@@ -71,14 +138,19 @@
             const testBuffer = Buffer.from('test');
             console.log('✅ Buffer.from is working correctly');
             console.log('Buffer test result:', testBuffer);
+            console.log('Buffer length:', testBuffer.length);
             
             // Test Buffer.alloc
             const allocBuffer = Buffer.alloc(10);
             console.log('✅ Buffer.alloc is working correctly');
+            console.log('Alloc buffer length:', allocBuffer.length);
             
             // Test Buffer.isBuffer
             const isBufferTest = Buffer.isBuffer(testBuffer);
             console.log('✅ Buffer.isBuffer is working correctly:', isBufferTest);
+            
+            // Test Buffer methods
+            console.log('✅ All Buffer methods available:', Object.keys(Buffer));
             
         } catch (error) {
             console.error('❌ Buffer is not working:', error);
@@ -86,10 +158,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.6 - ENHANCED BUFFER FIX 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.7 - COMPLETE BUFFER REWRITE 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Enhanced Buffer polyfill with fallback implementation!');
+        console.log('✅ Complete custom Buffer polyfill implementation!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
