@@ -2,6 +2,7 @@ let wallet = null;
 let walletAddress = null;
 let connection = null;
 
+
 // Initialize connection
 window.addEventListener('load', () => {
     // Use your Alchemy RPC endpoint
@@ -121,13 +122,17 @@ async function createTokenWithPhantom(tokenData) {
         });
 
         // Initialize mint instruction
+        const initializeMintData = new Uint8Array(9);
+        initializeMintData[0] = 0; // InitializeMint instruction
+        // Leave the rest as zeros for now (decimals, mintAuthority, freezeAuthority)
+        
         const initializeMintInstruction = new solanaWeb3.TransactionInstruction({
             keys: [
                 { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
                 { pubkey: new solanaWeb3.PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
             ],
             programId: new solanaWeb3.PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-            data: Buffer.from([0, ...new Uint8Array(4), ...new Uint8Array(4), ...new Uint8Array(4)])
+            data: initializeMintData
         });
 
         // Create associated token account
