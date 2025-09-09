@@ -167,10 +167,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.3 - UPDATED SOLANA WEB3.JS 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.4 - WALLET PUBLICKEY DEBUG 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Updated Solana Web3.js + Enhanced Buffer + Alternative account creation!');
+        console.log('✅ Debugging wallet PublicKey toBuffer issue + Enhanced Buffer!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -1178,6 +1178,43 @@
                 
                 // Get recipient public key
                 const recipient = new solanaWeb3.PublicKey(formData.sendTo);
+                
+                // Debug the wallet PublicKey (this is likely the issue)
+                console.log('Wallet PublicKey:', wallet);
+                console.log('Wallet type:', typeof wallet);
+                console.log('Wallet constructor:', wallet ? wallet.constructor.name : 'UNDEFINED');
+                console.log('Wallet has toBuffer:', wallet ? typeof wallet.toBuffer : 'UNDEFINED');
+                
+                // Test wallet toBuffer method
+                if (wallet && typeof wallet.toBuffer === 'function') {
+                    try {
+                        const walletBuffer = wallet.toBuffer();
+                        console.log('✅ Wallet.toBuffer() works:', walletBuffer);
+                    } catch (error) {
+                        console.error('❌ Wallet.toBuffer() failed:', error);
+                    }
+                } else {
+                    console.error('❌ Wallet.toBuffer() method not available');
+                    
+                    // Add toBuffer method to wallet if it doesn't exist
+                    if (wallet && typeof wallet.toBytes === 'function') {
+                        console.log('🔧 Adding toBuffer method to wallet PublicKey...');
+                        wallet.toBuffer = function() {
+                            return new Buffer(this.toBytes());
+                        };
+                        console.log('✅ Wallet.toBuffer() method added');
+                        
+                        // Test it
+                        try {
+                            const walletBuffer = wallet.toBuffer();
+                            console.log('✅ Wallet.toBuffer() now works:', walletBuffer);
+                        } catch (error) {
+                            console.error('❌ Wallet.toBuffer() still failed after adding:', error);
+                        }
+                    } else {
+                        console.error('❌ Wallet does not have toBytes method either');
+                    }
+                }
                 
                 // Get rent exemption amount for mint (hardcoded for demo)
                 // This is the standard rent exemption for a mint account on Solana
