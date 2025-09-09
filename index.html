@@ -62,6 +62,37 @@
                     const sliced = super.slice(start, end);
                     return new Buffer(sliced);
                 }
+                
+                // Add writeUInt32LE method (little-endian 32-bit unsigned integer)
+                writeUInt32LE(value, offset) {
+                    if (offset + 4 > this.length) {
+                        throw new Error('Index out of range');
+                    }
+                    this[offset] = value & 0xFF;
+                    this[offset + 1] = (value >> 8) & 0xFF;
+                    this[offset + 2] = (value >> 16) & 0xFF;
+                    this[offset + 3] = (value >> 24) & 0xFF;
+                    return offset + 4;
+                }
+                
+                // Add writeBigUInt64LE method (little-endian 64-bit unsigned integer)
+                writeBigUInt64LE(value, offset) {
+                    if (offset + 8 > this.length) {
+                        throw new Error('Index out of range');
+                    }
+                    const low = Number(value & 0xFFFFFFFFn);
+                    const high = Number(value >> 32n);
+                    
+                    this[offset] = low & 0xFF;
+                    this[offset + 1] = (low >> 8) & 0xFF;
+                    this[offset + 2] = (low >> 16) & 0xFF;
+                    this[offset + 3] = (low >> 24) & 0xFF;
+                    this[offset + 4] = high & 0xFF;
+                    this[offset + 5] = (high >> 8) & 0xFF;
+                    this[offset + 6] = (high >> 16) & 0xFF;
+                    this[offset + 7] = (high >> 24) & 0xFF;
+                    return offset + 8;
+                }
             }
             
             // Static methods
@@ -162,16 +193,25 @@
             const hexBuffer = Buffer.from('48656c6c6f', 'hex');
             console.log('✅ Hex encoding working:', hexBuffer.toString());
             
+            // Test writeUInt32LE method
+            const testBuffer = Buffer.alloc(8);
+            testBuffer.writeUInt32LE(12345, 0);
+            console.log('✅ writeUInt32LE method working');
+            
+            // Test writeBigUInt64LE method
+            testBuffer.writeBigUInt64LE(123456789n, 4);
+            console.log('✅ writeBigUInt64LE method working');
+            
         } catch (error) {
             console.error('❌ Buffer is not working:', error);
             console.error('Available Buffer methods:', Object.keys(Buffer || {}));
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.9 - GROK'S SIMPLIFIED APPROACH 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 10.0 - ENHANCED BUFFER METHODS 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Simplified createToken + Manual SPL Token + Enhanced Validation + Favicon!');
+        console.log('✅ Enhanced Buffer + writeUInt32LE + writeBigUInt64LE + Manual SPL Token!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
