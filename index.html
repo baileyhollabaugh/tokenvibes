@@ -499,6 +499,7 @@
         let connection = null;
         let currentPage = 'homepage';
         let currentRpcIndex = 0;
+        let isWalletConnected = false;
         
         // RPC endpoints with fallbacks - Using working public endpoints
         const rpcEndpoints = [
@@ -635,11 +636,20 @@
         }
 
         async function checkWalletConnection() {
-            if (window.solana && window.solana.isConnected && window.solana.publicKey) {
-                wallet = window.solana.publicKey;
-                await updateWalletStatus(true);
-                document.getElementById('sendToAddress').value = wallet.toString();
-                showMessage('Wallet already connected!', 'success');
+            try {
+                if (window.solana && window.solana.isConnected && window.solana.publicKey) {
+                    wallet = window.solana.publicKey;
+                    isWalletConnected = true;
+                    await updateWalletStatus(true);
+                    document.getElementById('sendToAddress').value = wallet.toString();
+                    console.log('Wallet already connected on page load');
+                } else {
+                    isWalletConnected = false;
+                    console.log('No wallet connected on page load');
+                }
+            } catch (error) {
+                isWalletConnected = false;
+                console.log('Error checking wallet connection on page load:', error);
             }
         }
 
@@ -651,10 +661,11 @@
                     return;
                 }
 
-                // Check if Phantom is connected
-                if (window.solana.isConnected) {
+                // Check if Phantom is already connected
+                if (window.solana.isConnected && window.solana.publicKey) {
                     wallet = window.solana.publicKey;
-                    updateWalletStatus(true);
+                    isWalletConnected = true;
+                    await updateWalletStatus(true);
                     showMessage('Wallet already connected!', 'success');
                     document.getElementById('sendToAddress').value = wallet.toString();
                     return;
@@ -663,6 +674,7 @@
                 // Connect to Phantom
                 const response = await window.solana.connect({ onlyIfTrusted: false });
                 wallet = response.publicKey;
+                isWalletConnected = true;
                 
                 await updateWalletStatus(true);
                 showMessage('Wallet connected successfully!', 'success');
@@ -709,6 +721,7 @@
 
         async function disconnectWallet() {
             wallet = null;
+            isWalletConnected = false;
             await updateWalletStatus(false);
             showMessage('Wallet disconnected', 'warning');
         }
@@ -790,7 +803,7 @@
             console.log('=== FORM SUBMISSION STARTED ===');
             e.preventDefault();
             
-            if (!wallet) {
+            if (!wallet || !isWalletConnected) {
                 console.log('No wallet connected');
                 showMessage('Please connect your wallet first', 'error');
                 return;
@@ -799,6 +812,7 @@
             // Verify wallet is still connected
             if (!window.solana || !window.solana.isConnected) {
                 console.log('Wallet connection lost');
+                isWalletConnected = false;
                 showMessage('Wallet connection lost. Please reconnect your wallet.', 'error');
                 wallet = null;
                 updateWalletStatus(false);
