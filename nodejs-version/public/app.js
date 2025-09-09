@@ -66,10 +66,6 @@ window.addEventListener('load', async () => {
         }
     }
     
-    // Handle file upload click
-    document.getElementById('fileUpload').addEventListener('click', () => {
-        document.getElementById('image').click();
-    });
 });
 
 // Create token using Phantom wallet

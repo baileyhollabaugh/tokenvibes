@@ -1,37 +1,12 @@
 const express = require('express');
-const multer = require('multer');
 const TokenCreator = require('../tokenCreator');
 const { Keypair, PublicKey } = require('@solana/web3.js');
-const path = require('path');
 
 const router = express.Router();
 const tokenCreator = new TokenCreator();
 
-// Configure multer for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, '../../uploads'));
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'), false);
-    }
-  }
-});
-
 // Create token endpoint
-router.post('/create', upload.single('image'), async (req, res) => {
+router.post('/create', async (req, res) => {
   try {
     const { name, symbol, description, quantity, destinationAddress, walletAddress } = req.body;
     
@@ -53,7 +28,7 @@ router.post('/create', upload.single('image'), async (req, res) => {
       quantity: parseInt(quantity),
       decimals: 9, // Always use 9 decimals
       destinationAddress: destinationAddress.trim(),
-      imageUri: req.file ? `/uploads/${req.file.filename}` : ''
+      imageUri: '' // No image upload
     };
 
     // Prepare metadata and return data for frontend signing
