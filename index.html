@@ -208,7 +208,7 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.2 - FINAL METADATA FIX 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 11.3 - BLOCKHASH EXPIRATION FIX 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
         console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
@@ -1577,6 +1577,14 @@
                 console.log('Adding mint keypair as signer...');
                 transaction.partialSign(mint);
                 
+                // Refresh blockhash right before sending to prevent expiration
+                console.log('Refreshing blockhash to prevent expiration...');
+                const { blockhash: freshBlockhash } = await executeWithRpcFallback(async () => {
+                    return await connection.getLatestBlockhash();
+                }, 'Refresh Blockhash');
+                transaction.recentBlockhash = freshBlockhash;
+                console.log('✅ Fresh blockhash applied');
+                
                 // Sign and send transaction
                 console.log('Sending transaction to wallet for signing...');
                 let signature;
@@ -1589,6 +1597,8 @@
                         throw new Error('Transaction was rejected by user');
                     } else if (error.message.includes('insufficient funds')) {
                         throw new Error('Insufficient SOL balance to create token');
+                    } else if (error.message.includes('blockhash') || error.message.includes('expired')) {
+                        throw new Error('Transaction expired - please try again. The network may be congested.');
                     } else {
                         throw new Error(`Transaction failed: ${error.message}`);
                     }
