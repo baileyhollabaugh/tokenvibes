@@ -498,6 +498,15 @@
         let wallet = null;
         let connection = null;
         let currentPage = 'homepage';
+        let currentRpcIndex = 0;
+        
+        // RPC endpoints with fallbacks - Mainnet with reliable providers
+        const rpcEndpoints = [
+            'https://rpc.ankr.com/solana',
+            'https://solana-api.projectserum.com',
+            'https://api.mainnet-beta.solana.com',
+            'https://solana-mainnet.g.alchemy.com/v2/demo'
+        ];
 
         // Token Vibes fee address (you can change this to your own)
         const TOKEN_VIBES_FEE_ADDRESS = 'H8qNgn3ytAq9apwuhp2JmxfGgx7ertiL3W4dED8KowM3';
@@ -512,15 +521,54 @@
             // Start logo animation
             animateLogo();
             
-            // Initialize Solana connection (using mainnet for production)
-            connection = new solanaWeb3.Connection('https://api.mainnet-beta.solana.com');
-            console.log('Solana connection initialized:', connection);
+            // Initialize Solana connection with fallback support
+            initializeSolanaConnection();
             
             // Set up event listeners
             setupEventListeners();
             
             // Check if Phantom is installed
             checkPhantomInstalled();
+        }
+
+        function initializeSolanaConnection() {
+            connection = new solanaWeb3.Connection(rpcEndpoints[currentRpcIndex], 'confirmed');
+            console.log(`Solana connection initialized with endpoint ${currentRpcIndex + 1}/${rpcEndpoints.length}:`, rpcEndpoints[currentRpcIndex]);
+        }
+
+        async function switchToNextRpcEndpoint() {
+            currentRpcIndex = (currentRpcIndex + 1) % rpcEndpoints.length;
+            console.log(`Switching to RPC endpoint ${currentRpcIndex + 1}/${rpcEndpoints.length}:`, rpcEndpoints[currentRpcIndex]);
+            connection = new solanaWeb3.Connection(rpcEndpoints[currentRpcIndex], 'confirmed');
+        }
+
+        async function executeWithRpcFallback(operation, operationName) {
+            let lastError = null;
+            const maxRetries = rpcEndpoints.length;
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    console.log(`${operationName} attempt ${attempt + 1}/${maxRetries} with endpoint:`, rpcEndpoints[currentRpcIndex]);
+                    const result = await operation();
+                    return result;
+                } catch (error) {
+                    lastError = error;
+                    console.error(`${operationName} failed with endpoint ${currentRpcIndex + 1}:`, error.message);
+                    
+                    // Check if it's a 403 or network error
+                    if (error.message.includes('403') || error.message.includes('Access forbidden') || error.message.includes('fetch')) {
+                        console.log('RPC endpoint failed, trying next one...');
+                        await switchToNextRpcEndpoint();
+                        // Wait a bit before retrying
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        // If it's not an RPC error, don't retry
+                        throw error;
+                    }
+                }
+            }
+            
+            throw new Error(`${operationName} failed on all RPC endpoints. Last error: ${lastError.message}`);
         }
 
         function animateLogo() {
@@ -640,10 +688,13 @@
             
             if (connected) {
                 try {
-                    const balance = await connection.getBalance(wallet);
+                    const balance = await executeWithRpcFallback(async () => {
+                        return await connection.getBalance(wallet);
+                    }, 'Wallet Balance Display');
                     const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
                     statusElement.textContent = `Connected: ${wallet.toString().slice(0, 8)}... (${solBalance.toFixed(4)} SOL)`;
                 } catch (error) {
+                    console.warn('Could not fetch wallet balance for display:', error.message);
                     statusElement.textContent = `Connected: ${wallet.toString().slice(0, 8)}...`;
                 }
                 statusElement.className = 'wallet-status wallet-connected';
@@ -757,10 +808,14 @@
             
             console.log('Wallet is connected:', wallet.toString());
             
-            // Check SOL balance
+            // Check SOL balance with RPC fallback
             try {
                 console.log('Checking SOL balance for wallet:', wallet.toString());
-                const balance = await connection.getBalance(wallet);
+                
+                const balance = await executeWithRpcFallback(async () => {
+                    return await connection.getBalance(wallet);
+                }, 'SOL Balance Check');
+                
                 const solBalance = balance / solanaWeb3.LAMPORTS_PER_SOL;
                 const requiredBalance = TOKEN_VIBES_FEE_AMOUNT + 0.01; // Fee + estimated transaction costs
                 
@@ -774,12 +829,11 @@
                 
                 console.log(`SOL balance check passed: ${solBalance.toFixed(4)} SOL available`);
             } catch (error) {
-                console.error('Failed to check SOL balance:', error);
-                console.error('Error details:', error.message);
+                console.error('Failed to check SOL balance on all RPC endpoints:', error);
                 
                 // Ask user if they want to continue without balance check
                 const continueWithoutCheck = confirm(
-                    'Unable to check your SOL balance. This might be due to network issues.\n\n' +
+                    'Unable to check your SOL balance on any RPC endpoint. This might be due to network issues.\n\n' +
                     'Do you want to continue with token creation anyway?\n\n' +
                     'Note: You need at least 0.02 SOL (0.01 SOL fee + transaction costs) to create a token.'
                 );
@@ -910,10 +964,10 @@
                 // Get recipient public key
                 const recipient = new solanaWeb3.PublicKey(formData.sendTo);
                 
-                // Get rent exemption amount for mint
-                const rentExemption = await connection.getMinimumBalanceForRentExemption(
-                    solanaWeb3.MINT_SIZE
-                );
+                // Get rent exemption amount for mint with RPC fallback
+                const rentExemption = await executeWithRpcFallback(async () => {
+                    return await connection.getMinimumBalanceForRentExemption(solanaWeb3.MINT_SIZE);
+                }, 'Rent Exemption Check');
                 
                 // Create transaction
                 const transaction = new solanaWeb3.Transaction();
@@ -975,8 +1029,10 @@
                     transaction.add(mintToInstruction);
                 }
                 
-                // Get recent blockhash
-                const { blockhash } = await connection.getLatestBlockhash();
+                // Get recent blockhash with RPC fallback
+                const { blockhash } = await executeWithRpcFallback(async () => {
+                    return await connection.getLatestBlockhash();
+                }, 'Get Latest Blockhash');
                 transaction.recentBlockhash = blockhash;
                 transaction.feePayer = wallet;
                 
@@ -986,9 +1042,11 @@
                 
                 console.log('Transaction sent:', signature);
                 
-                // Wait for confirmation
+                // Wait for confirmation with RPC fallback
                 console.log('Waiting for confirmation...');
-                await connection.confirmTransaction(signature, 'confirmed');
+                await executeWithRpcFallback(async () => {
+                    return await connection.confirmTransaction(signature, 'confirmed');
+                }, 'Transaction Confirmation');
                 
                 console.log('✅ Token creation successful!');
                 
