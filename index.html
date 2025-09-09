@@ -26,9 +26,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.0 - PRODUCTION READY 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 8.1 - PAID RPC READY 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
-        console.log('Ready for production token creation!');
+        console.log('Ready for production token creation with paid RPC providers!');
+        console.log('💡 Add your API key to eliminate 403 errors!');
     </script>
     
     <style>
@@ -509,9 +510,21 @@
         let currentRpcIndex = 0;
         let isWalletConnected = false;
         
-        // RPC endpoints with fallbacks - Using working public endpoints
+        // RPC endpoints with fallbacks - Paid providers first, then free fallbacks
+        // 
+        // TO GET PAID RPC API KEYS:
+        // 1. Alchemy (Recommended): https://alchemy.com -> Create app -> Get API key
+        // 2. QuickNode: https://quicknode.com -> Create endpoint -> Get URL
+        // 3. Helius: https://helius.xyz -> Create project -> Get API key
+        // 
+        // Replace YOUR_ALCHEMY_API_KEY with your actual API key from Alchemy
         const rpcEndpoints = [
-            'https://api.mainnet-beta.solana.com'
+            // PAID RPC PROVIDERS (Replace YOUR_API_KEY with your actual API key)
+            'https://solana-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_API_KEY',  // Alchemy (recommended)
+            'https://solana-mainnet.g.alchemy.com/v2/demo',  // Alchemy demo (limited)
+            'https://rpc.ankr.com/solana',  // Ankr (free tier)
+            'https://solana-api.projectserum.com',  // Serum (free)
+            'https://api.mainnet-beta.solana.com'  // Solana Labs (free, rate limited)
         ];
 
         // Token Vibes fee address (you can change this to your own)
@@ -542,16 +555,42 @@
             console.log(`Solana connection initialized with endpoint ${currentRpcIndex + 1}/${rpcEndpoints.length}:`, rpcEndpoints[currentRpcIndex]);
         }
 
+        function switchToNextRpcEndpoint() {
+            currentRpcIndex = (currentRpcIndex + 1) % rpcEndpoints.length;
+            console.log(`Switching to RPC endpoint ${currentRpcIndex + 1}/${rpcEndpoints.length}:`, rpcEndpoints[currentRpcIndex]);
+            connection = new solanaWeb3.Connection(rpcEndpoints[currentRpcIndex], 'confirmed');
+        }
+
         async function executeWithRpcFallback(operation, operationName) {
-            try {
-                console.log(`${operationName} attempt with endpoint:`, rpcEndpoints[currentRpcIndex]);
-                const result = await operation();
-                console.log(`${operationName} succeeded`);
-                return result;
-            } catch (error) {
-                console.error(`${operationName} failed:`, error.message);
-                throw error;
+            const maxRetries = rpcEndpoints.length;
+            let lastError = null;
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    console.log(`${operationName} attempt ${attempt + 1}/${maxRetries} with endpoint:`, rpcEndpoints[currentRpcIndex]);
+                    const result = await operation();
+                    console.log(`${operationName} succeeded with endpoint ${currentRpcIndex + 1}`);
+                    return result;
+                } catch (error) {
+                    lastError = error;
+                    console.error(`${operationName} failed with endpoint ${currentRpcIndex + 1}:`, error.message);
+                    
+                    // Check if it's a 403 or network error
+                    if (error.message.includes('403') || error.message.includes('Access forbidden') || error.message.includes('fetch')) {
+                        if (attempt < maxRetries - 1) {
+                            console.log('RPC endpoint failed, trying next one...');
+                            switchToNextRpcEndpoint();
+                            // Wait a bit before retrying
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    } else {
+                        // If it's not an RPC error, don't retry
+                        throw error;
+                    }
+                }
             }
+            
+            throw new Error(`${operationName} failed on all RPC endpoints. Last error: ${lastError.message}`);
         }
 
         function animateLogo() {
