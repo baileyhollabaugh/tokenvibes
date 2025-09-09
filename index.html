@@ -9,8 +9,8 @@
     <meta http-equiv="Expires" content="0">
     
     <!-- Solana Web3.js and SPL Token libraries -->
-    <script src="https://unpkg.com/@solana/web3.js@1.78.4/lib/index.iife.min.js"></script>
-    <script src="https://unpkg.com/@solana/spl-token@0.1.8/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.3.9/lib/index.iife.min.js"></script>
     
     <!-- Enhanced Buffer polyfill for Solana Web3.js compatibility -->
     <script>
@@ -167,10 +167,10 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.2 - ENHANCED BUFFER 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 9.3 - UPDATED SOLANA WEB3.JS 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
-        console.log('✅ Enhanced Buffer = Uint8Array + toBuffer() + No fees + Hardcoded rent!');
+        console.log('✅ Updated Solana Web3.js + Enhanced Buffer + Alternative account creation!');
         console.log('🔄 Deployment triggered at:', new Date().toISOString());
     </script>
     
@@ -683,6 +683,22 @@
             console.log('✅ Solana Web3.js library loaded successfully');
             console.log('Available Solana Web3 methods:', Object.keys(solanaWeb3));
             
+            // Add PublicKey toBuffer polyfill if needed
+            if (solanaWeb3.PublicKey && solanaWeb3.PublicKey.prototype) {
+                const originalToBuffer = solanaWeb3.PublicKey.prototype.toBuffer;
+                if (!originalToBuffer || typeof originalToBuffer !== 'function') {
+                    console.log('🔧 Adding PublicKey.toBuffer polyfill...');
+                    solanaWeb3.PublicKey.prototype.toBuffer = function() {
+                        // Convert the public key to a Buffer
+                        const bytes = this.toBytes();
+                        return new Buffer(bytes);
+                    };
+                    console.log('✅ PublicKey.toBuffer polyfill added');
+                } else {
+                    console.log('✅ PublicKey.toBuffer method already exists');
+                }
+            }
+            
             // Initialize Solana connection with fallback support
             initializeSolanaConnection();
             
@@ -1137,6 +1153,24 @@
                 console.log('Mint publicKey:', mint.publicKey ? mint.publicKey.toString() : 'UNDEFINED');
                 console.log('Mint secretKey length:', mint.secretKey ? mint.secretKey.length : 'UNDEFINED');
                 
+                // Debug the PublicKey object
+                console.log('PublicKey type:', typeof mint.publicKey);
+                console.log('PublicKey constructor:', mint.publicKey ? mint.publicKey.constructor.name : 'UNDEFINED');
+                console.log('PublicKey has toBuffer:', mint.publicKey ? typeof mint.publicKey.toBuffer : 'UNDEFINED');
+                console.log('PublicKey methods:', mint.publicKey ? Object.getOwnPropertyNames(Object.getPrototypeOf(mint.publicKey)) : 'UNDEFINED');
+                
+                // Test toBuffer method directly
+                if (mint.publicKey && typeof mint.publicKey.toBuffer === 'function') {
+                    try {
+                        const buffer = mint.publicKey.toBuffer();
+                        console.log('✅ PublicKey.toBuffer() works:', buffer);
+                    } catch (error) {
+                        console.error('❌ PublicKey.toBuffer() failed:', error);
+                    }
+                } else {
+                    console.error('❌ PublicKey.toBuffer() method not available');
+                }
+                
                 // Verify the keypair was created properly
                 if (!mint || !mint.publicKey) {
                     throw new Error('Failed to generate mint keypair - publicKey is undefined');
@@ -1155,14 +1189,19 @@
                 // No fee payment needed for demo version
                 // (Fee payment instruction removed for simplicity)
                 
-                // Create mint account
+                // Create mint account using the newer API approach
+                console.log('Creating mint account instruction...');
+                
+                // Use the newer createAccount method that should work better
                 const createMintAccountInstruction = solanaWeb3.SystemProgram.createAccount({
                     fromPubkey: wallet,
                     newAccountPubkey: mint.publicKey,
-                    space: solanaWeb3.MINT_SIZE,
+                    space: 82, // Standard mint account size
                     lamports: rentExemption,
                     programId: solanaWeb3.TOKEN_PROGRAM_ID
                 });
+                
+                console.log('✅ Account instruction created successfully');
                 transaction.add(createMintAccountInstruction);
                 
                 // Set mint and freeze authorities based on form settings
