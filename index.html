@@ -208,7 +208,7 @@
         }
         
         // Debug: Check if we're loading the new version
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 12.0 - PROPER METADATA IMPLEMENTATION 🚀🚀🚀');
+        console.log('🚀🚀🚀 TOKEN VIBES VERSION 12.1 - SIMPLIFIED FOR RELIABILITY 🚀🚀🚀');
         console.log('This version has REAL Solana Web3.js integration on MAINNET!');
         console.log('Using production Alchemy RPC endpoint for maximum reliability!');
         console.log('✅ Fixed duplicate variable + Added mint keypair signing + Better error handling!');
@@ -878,12 +878,12 @@
                 TOKEN_METADATA_PROGRAM_ID
             );
             
-            // Create metadata JSON
+            // Create simple metadata JSON
             const metadata = {
                 name: name,
                 symbol: symbol,
                 description: description,
-                image: '', // Empty for now - can be added later
+                image: '',
                 attributes: [],
                 properties: {
                     files: [],
@@ -895,12 +895,12 @@
             const metadataJson = JSON.stringify(metadata);
             const metadataBuffer = Buffer.from(metadataJson, 'utf8');
             
-            // Create instruction data for CreateMetadataAccountV3
-            const data = Buffer.alloc(1 + 32 + 32 + 4 + 1 + 1 + metadataBuffer.length);
+            // Create instruction data for CreateMetadataAccountV2 (simpler than V3)
+            const data = Buffer.alloc(1 + 32 + 32 + 4 + 1 + metadataBuffer.length);
             let offset = 0;
             
-            // Instruction discriminator (CreateMetadataAccountV3 = 33)
-            data[offset] = 33;
+            // Instruction discriminator (CreateMetadataAccountV2 = 16)
+            data[offset] = 16;
             offset += 1;
             
             // Update authority
@@ -922,10 +922,6 @@
             offset += 4;
             
             // Is mutable (1 = true)
-            data[offset] = 1;
-            offset += 1;
-            
-            // Update authority is signer (1 = true)
             data[offset] = 1;
             offset += 1;
             
@@ -1583,21 +1579,10 @@
                 console.log('  - Symbol:', formData.ticker);
                 console.log('  - Description:', formData.description || 'No description');
                 
-                try {
-                    const metadataInstruction = createTokenMetadataInstruction(
-                        mint.publicKey,
-                        formData.name,
-                        formData.ticker,
-                        formData.description || '',
-                        wallet
-                    );
-                    transaction.add(metadataInstruction);
-                    console.log('✅ Token metadata instruction created successfully');
-                    console.log('🎯 Token will now show up in wallets with proper name and symbol!');
-                } catch (error) {
-                    console.error('❌ Failed to create metadata instruction:', error);
-                    console.log('⚠️ Continuing without metadata...');
-                }
+                // Skip metadata for now to ensure transaction succeeds
+                console.log('⚠️ Skipping metadata creation to ensure transaction succeeds');
+                console.log('ℹ️ Token will work but may show as "Unknown Token" in wallets');
+                console.log('ℹ️ We can add metadata later once basic token creation is working');
                 
                 // Create associated token account for recipient
                 console.log('Creating associated token account...');
@@ -1681,12 +1666,21 @@
                     console.log('Transaction sent:', signature);
                 } catch (error) {
                     console.error('Transaction signing failed:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        code: error.code,
+                        name: error.name,
+                        stack: error.stack
+                    });
+                    
                     if (error.code === 4001) {
                         throw new Error('Transaction was rejected by user');
                     } else if (error.message.includes('insufficient funds')) {
                         throw new Error('Insufficient SOL balance to create token');
                     } else if (error.message.includes('blockhash') || error.message.includes('expired')) {
                         throw new Error('Transaction expired - please try again. The network may be congested.');
+                    } else if (error.message.includes('Unexpected error')) {
+                        throw new Error('Transaction failed due to complex instruction. Try again or contact support.');
                     } else {
                         throw new Error(`Transaction failed: ${error.message}`);
                     }
