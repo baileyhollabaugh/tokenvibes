@@ -7,24 +7,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <script src="https://unpkg.com/buffer@6.0.3/index.js?v=3"></script>
-    <script src="https://unpkg.com/process@0.11.10/browser.js?v=3"></script>
-    <script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js?v=3"></script>
     <script>
-        // Make Node.js globals available in browser
-        window.Buffer = Buffer;
-        window.process = process;
-        
-        // Add globalThis polyfill for older browsers
-        if (typeof globalThis === 'undefined') {
-            window.globalThis = window;
-        }
-        
-        // Debug: Check if Buffer is available
-        console.log('🚀🚀🚀 TOKEN VIBES VERSION 3.0 - LATEST UPDATE 🚀🚀🚀');
-        console.log('Buffer available:', typeof Buffer);
-        console.log('Buffer.from available:', typeof Buffer.from);
-        console.log('If you see this message, you have the latest version!');
+        // Debug: Check if we're loading the clean version
+        console.log('🎉🎉🎉 TOKEN VIBES VERSION 6.0 - COMPLETELY CLEAN 🎉🎉🎉');
+        console.log('This version has NO Solana Web3.js at all!');
+        console.log('Basic form functionality only!');
     </script>
     <style>
         * {
@@ -122,31 +109,6 @@
             background: #ccc;
             cursor: not-allowed;
             transform: none;
-        }
-
-        /* Wallet Connection */
-        .wallet-section {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .wallet-status {
-            padding: 10px 20px;
-            border-radius: 25px;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
-        .wallet-connected {
-            background: rgba(255, 255, 255, 0.9);
-            color: #2d3436;
-            border: 2px solid #00b894;
-        }
-
-        .wallet-disconnected {
-            background: rgba(255, 107, 107, 0.2);
-            color: #ff6b6b;
-            border: 2px solid #ff6b6b;
         }
 
         /* Main Content */
@@ -393,16 +355,6 @@
             </div>
         </header>
 
-        <!-- Wallet Connection Section -->
-        <div class="wallet-section">
-            <div class="wallet-status" id="walletStatus">
-                Wallet not connected
-            </div>
-            <button class="btn btn-secondary" id="connectWalletBtn">
-                Connect Phantom Wallet
-            </button>
-        </div>
-
         <!-- Main Content Area -->
         <div class="main-content">
             <!-- Homepage -->
@@ -501,7 +453,7 @@
 
                     <div style="text-align: center; margin-top: 40px;">
                         <button type="submit" class="btn" id="submitBtn">
-                            Create Token (0.01 SOL + fees)
+                            Create Token (Simulation Mode)
                         </button>
                     </div>
                 </form>
@@ -519,7 +471,7 @@
                 <div class="success-icon">🎉</div>
                 <h2>Token Created Successfully!</h2>
                 <p style="margin-bottom: 30px; color: #636e72;">
-                    Your token has been deployed to the Solana blockchain.
+                    Your token has been simulated successfully! (This is a demo version)
                 </p>
                 
                 <div class="token-details" id="tokenDetails">
@@ -537,8 +489,6 @@
 
     <script>
         // Global variables
-        let wallet = null;
-        let connection = null;
         let currentPage = 'homepage';
 
         // Initialize the app
@@ -550,14 +500,8 @@
             // Start logo animation
             animateLogo();
             
-            // Initialize Solana connection (using devnet for testing)
-            connection = new solanaWeb3.Connection('https://api.devnet.solana.com');
-            
             // Set up event listeners
             setupEventListeners();
-            
-            // Check if Phantom is installed
-            checkPhantomInstalled();
         }
 
         function animateLogo() {
@@ -597,9 +541,6 @@
         }
 
         function setupEventListeners() {
-            // Wallet connection
-            document.getElementById('connectWalletBtn').addEventListener('click', connectWallet);
-            
             // Navigation
             document.getElementById('createTokenBtn').addEventListener('click', showTokenForm);
             
@@ -612,70 +553,9 @@
             
             // Image upload
             setupImageUpload();
-            
-            // Auto-fill send address when wallet connects
-            document.getElementById('sendToAddress').addEventListener('input', validateAddress);
-        }
-
-        function checkPhantomInstalled() {
-            if (typeof window.solana === 'undefined') {
-                showMessage('Phantom wallet is not installed. Please install Phantom to continue.', 'error');
-                document.getElementById('connectWalletBtn').disabled = true;
-                document.getElementById('connectWalletBtn').textContent = 'Install Phantom Wallet';
-            }
-        }
-
-        async function connectWallet() {
-            try {
-                if (typeof window.solana === 'undefined') {
-                    window.open('https://phantom.app/', '_blank');
-                    return;
-                }
-
-                const response = await window.solana.connect();
-                wallet = response.publicKey;
-                
-                updateWalletStatus(true);
-                showMessage('Wallet connected successfully!', 'success');
-                
-                // Auto-fill send address
-                document.getElementById('sendToAddress').value = wallet.toString();
-                
-            } catch (error) {
-                console.error('Wallet connection failed:', error);
-                showMessage('Failed to connect wallet. Please try again.', 'error');
-            }
-        }
-
-        function updateWalletStatus(connected) {
-            const statusElement = document.getElementById('walletStatus');
-            const buttonElement = document.getElementById('connectWalletBtn');
-            
-            if (connected) {
-                statusElement.textContent = `Connected: ${wallet.toString().slice(0, 8)}...`;
-                statusElement.className = 'wallet-status wallet-connected';
-                buttonElement.textContent = 'Disconnect Wallet';
-                buttonElement.onclick = disconnectWallet;
-            } else {
-                statusElement.textContent = 'Wallet not connected';
-                statusElement.className = 'wallet-status wallet-disconnected';
-                buttonElement.textContent = 'Connect Phantom Wallet';
-                buttonElement.onclick = connectWallet;
-            }
-        }
-
-        function disconnectWallet() {
-            wallet = null;
-            updateWalletStatus(false);
-            showMessage('Wallet disconnected', 'warning');
         }
 
         function showTokenForm() {
-            if (!wallet) {
-                showMessage('Please connect your wallet first', 'error');
-                return;
-            }
-            
             showPage('tokenForm');
         }
 
@@ -773,15 +653,6 @@
             reader.readAsDataURL(file);
         }
 
-        function validateAddress(address) {
-            try {
-                new solanaWeb3.PublicKey(address);
-                return true;
-            } catch {
-                return false;
-            }
-        }
-
         function showMessage(text, type) {
             const messagesContainer = document.getElementById('formMessages');
             const messageDiv = document.createElement('div');
@@ -803,13 +674,7 @@
             console.log('=== FORM SUBMISSION STARTED ===');
             e.preventDefault();
             
-            if (!wallet) {
-                console.log('No wallet connected');
-                showMessage('Please connect your wallet first', 'error');
-                return;
-            }
-            
-            console.log('Wallet is connected:', wallet.toString());
+            console.log('🎉 Starting clean form submission!');
             
             // Get and validate form data
             let formData;
@@ -817,8 +682,6 @@
                 console.log('About to call getFormData()...');
                 formData = getFormData();
                 console.log('Form data retrieved successfully:', formData);
-                console.log('Form data type:', typeof formData);
-                console.log('Form data name property:', formData ? formData.name : 'formData is null/undefined');
             } catch (error) {
                 console.error('Failed to get form data:', error);
                 showMessage('Failed to get form data: ' + error.message, 'error');
@@ -832,9 +695,8 @@
             // Show confirmation
             const confirmed = confirm(
                 'Are you sure you want to create this token?\n\n' +
-                'This action is permanent on Solana blockchain.\n' +
-                'You will pay 0.01 SOL fee + network fees.\n' +
-                'Fee goes to Token Vibes for service.'
+                'This is a simulation - no real token will be created.\n' +
+                'This is just to test the form functionality!'
             );
             
             if (!confirmed) return;
@@ -843,11 +705,8 @@
             showPage('loadingState');
             
             try {
-                // Create the token
+                // Create the token (simulation)
                 console.log('About to call createToken with formData:', formData);
-                console.log('formData is defined:', formData !== undefined);
-                console.log('formData is null:', formData === null);
-                console.log('formData type:', typeof formData);
                 
                 const result = await createToken(formData);
                 showSuccessPage(result);
@@ -924,9 +783,9 @@
                 return false;
             }
             
-            // Validate send address
-            if (!validateAddress(data.sendTo)) {
-                showMessage('Invalid send-to address', 'error');
+            // Validate send address (basic validation)
+            if (!data.sendTo || data.sendTo.length < 10) {
+                showMessage('Please enter a valid address', 'error');
                 return false;
             }
             
@@ -935,7 +794,7 @@
 
         async function createToken(formData) {
             try {
-                console.log('Starting token creation...');
+                console.log('🎉 Starting CLEAN token creation simulation...');
                 console.log('Form data received:', formData);
                 
                 // Check if formData is valid
@@ -943,47 +802,41 @@
                     throw new Error('Invalid form data provided');
                 }
                 
-                // Test if Buffer is working
-                console.log('Testing Buffer...');
-                try {
-                    const testBuffer = Buffer.from('test');
-                    console.log('Buffer test successful:', testBuffer);
-                } catch (bufferError) {
-                    console.error('Buffer test failed:', bufferError);
-                    throw new Error('Buffer not working: ' + bufferError.message);
-                }
+                // Simulate a delay to make it feel real
+                console.log('⏳ Simulating token creation process...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 
-                // For now, let's just show a success message without actual transaction
-                // This will test if the form data flow works
-                console.log('Simulating successful token creation...');
+                console.log('✅ Token creation simulation successful!');
                 
-                // Show success page with the form data
-                showSuccessPage({
+                // Return success data
+                return {
                     name: formData.name,
                     ticker: formData.ticker,
                     quantity: formData.quantity,
                     decimals: formData.decimals,
-                    mintAddress: 'TestMintAddress123456789',
-                    signature: 'TestSignature123456789'
-                });
+                    mintAddress: 'SIMULATED_MINT_ADDRESS_' + Math.random().toString(36).substr(2, 9),
+                    signature: 'SIMULATED_SIGNATURE_' + Math.random().toString(36).substr(2, 9)
+                };
                 
             } catch (error) {
                 console.error('Token creation failed:', error);
-                showPage('tokenForm');
-                alert('Token creation failed: ' + error.message);
+                throw error;
             }
         }
 
         function showSuccessPage(result) {
             const detailsContainer = document.getElementById('tokenDetails');
             detailsContainer.innerHTML = `
-                <h3>Token Details</h3>
+                <h3>Token Details (Simulation)</h3>
                 <p><strong>Name:</strong> ${result.name}</p>
                 <p><strong>Ticker:</strong> ${result.ticker}</p>
                 <p><strong>Quantity:</strong> ${result.quantity.toLocaleString()}</p>
                 <p><strong>Decimals:</strong> ${result.decimals}</p>
                 <p><strong>Mint Address:</strong> ${result.mintAddress}</p>
-                <p><strong>Transaction:</strong> <a href="https://explorer.solana.com/tx/${result.signature}?cluster=devnet" target="_blank" style="color: #00b894;">View on Solana Explorer</a></p>
+                <p><strong>Transaction:</strong> ${result.signature}</p>
+                <p style="color: #636e72; font-style: italic; margin-top: 15px;">
+                    ⚠️ This is a simulation - no real token was created on Solana blockchain.
+                </p>
             `;
             
             showPage('successPage');
