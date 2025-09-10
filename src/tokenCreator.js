@@ -17,8 +17,11 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
-// Metaplex Token Metadata Program ID
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+// Metaplex Umi imports following official templates
+const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
+const { mplTokenMetadata } = require('@metaplex-foundation/mpl-token-metadata');
+const { createMetadataAccountV3, findMetadataPda } = require('@metaplex-foundation/mpl-token-metadata');
+const { publicKey, some, none } = require('@metaplex-foundation/umi');
 
 class TokenCreator {
   constructor() {
@@ -27,6 +30,9 @@ class TokenCreator {
       'confirmed'
     );
     
+    // Setup Umi following official Metaplex templates
+    this.umi = createUmi(this.connection.rpcEndpoint);
+    this.umi.use(mplTokenMetadata());
   }
 
   async createToken(tokenData, walletPublicKey) {
@@ -105,55 +111,49 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata account for block explorer display
-      console.log('📝 Creating metadata account for name/ticker display...');
+      // Create metadata account using official Metaplex Umi pattern
+      console.log('📝 Creating metadata account using official Metaplex Umi...');
       
-      
-      // Find metadata PDA
-      const [metadataAccount] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('metadata'),
-          TOKEN_METADATA_PROGRAM_ID.toBytes(),
-          mintKeypair.publicKey.toBytes()
-        ],
-        TOKEN_METADATA_PROGRAM_ID
-      );
-      
-      console.log('✅ Metadata account:', metadataAccount.toString());
-      
-      // Create proper metadata instruction using modern format
-      console.log('📝 Creating modern metadata instruction...');
-      
-      // Create metadata account instruction using CreateMetadataAccountV2 format
-      const nameBytes = Buffer.from(metadata.name, 'utf8');
-      const symbolBytes = Buffer.from(metadata.symbol, 'utf8');
-      const uriBytes = Buffer.from(metadataUri, 'utf8');
-
-      const metadataInstruction = new TransactionInstruction({
-        keys: [
-          { pubkey: metadataAccount, isSigner: false, isWritable: true },
-          { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
-          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
-          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-        ],
-        programId: TOKEN_METADATA_PROGRAM_ID,
-        data: Buffer.concat([
-          Buffer.from([1]), // CreateMetadataAccountV2 instruction
-          Buffer.from([1]), // isMutable = true
-          Buffer.from([nameBytes.length]), // data name length
-          nameBytes, // name
-          Buffer.from([symbolBytes.length]), // data symbol length
-          symbolBytes, // symbol
-          Buffer.from([uriBytes.length]), // data uri length
-          uriBytes, // uri
-          Buffer.from([0, 0]), // seller fee basis points = 0 (2 bytes)
-          Buffer.from([0]), // creators length = 0
-        ])
+      // Find metadata PDA using Umi
+      const metadataPda = findMetadataPda(this.umi, { 
+        mint: publicKey(mintKeypair.publicKey.toString()) 
       });
       
-      console.log('✅ Modern metadata instruction created');
+      console.log('✅ Metadata account:', metadataPda.toString());
       
+      // Create metadata instruction using official Umi createMetadataAccountV3
+      const createMetadataInstruction = createMetadataAccountV3(this.umi, {
+        metadata: metadataPda,
+        mint: publicKey(mintKeypair.publicKey.toString()),
+        mintAuthority: publicKey(walletPublicKey.toString()),
+        payer: publicKey(walletPublicKey.toString()),
+        updateAuthority: publicKey(walletPublicKey.toString()),
+        data: {
+          name: metadata.name,
+          symbol: metadata.symbol,
+          uri: metadataUri,
+          sellerFeeBasisPoints: 0,
+          creators: none(),
+          collection: none(),
+          uses: none(),
+        },
+        isMutable: true,
+        collectionDetails: none(),
+      });
+      
+      console.log('✅ Official Metaplex metadata instruction created');
+      
+      // Convert Umi instruction to Solana TransactionInstruction
+      const metadataInstruction = new TransactionInstruction({
+        keys: createMetadataInstruction.instruction.keys.map(key => ({
+          pubkey: new PublicKey(key.pubkey),
+          isSigner: key.isSigner,
+          isWritable: key.isWritable,
+        })),
+        programId: new PublicKey(createMetadataInstruction.instruction.programId),
+        data: Buffer.from(createMetadataInstruction.instruction.data),
+      });
+
       // Create transaction
       const transaction = new Transaction();
       transaction.add(createAccountInstruction);
@@ -184,7 +184,7 @@ class TokenCreator {
       return {
         success: true,
         mintAddress: mintKeypair.publicKey.toString(),
-        metadataAddress: metadataAccount.toString(),
+        metadataAddress: metadataPda.toString(),
         name: tokenData.name,
         symbol: tokenData.symbol,
         quantity: tokenData.quantity,
