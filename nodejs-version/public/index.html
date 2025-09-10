@@ -13,9 +13,17 @@ thi<!DOCTYPE html>
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
             min-height: 100vh;
             padding: 20px;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .container {
@@ -28,7 +36,9 @@ thi<!DOCTYPE html>
         }
 
         .header {
-            background: linear-gradient(135deg, #00b894, #00a085);
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            background-size: 200% 200%;
+            animation: gradientShift 8s ease infinite;
             color: white;
             padding: 40px;
             text-align: center;
@@ -37,6 +47,41 @@ thi<!DOCTYPE html>
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
+            font-family: 'Brush Script MT', cursive;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .vibes-text {
+            display: inline-block;
+            animation: typewriter 2s steps(5) 1s forwards;
+            width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .dino-emoji {
+            display: inline-block;
+            animation: bounce 1s infinite, rotate 2s infinite;
+            margin: 0 10px;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        @keyframes rotate {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
         }
 
         .header p {
@@ -74,7 +119,7 @@ thi<!DOCTYPE html>
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #00b894;
+            border-color: #667eea;
         }
 
         .form-group textarea {
@@ -92,7 +137,7 @@ thi<!DOCTYPE html>
         }
 
         .file-upload:hover {
-            border-color: #00b894;
+            border-color: #667eea;
         }
 
         .file-upload input[type="file"] {
@@ -100,7 +145,7 @@ thi<!DOCTYPE html>
         }
 
         .btn {
-            background: linear-gradient(135deg, #00b894, #00a085);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
             padding: 15px 30px;
@@ -130,7 +175,7 @@ thi<!DOCTYPE html>
 
         .spinner {
             border: 4px solid #f3f3f3;
-            border-top: 4px solid #00b894;
+            border-top: 4px solid #667eea;
             border-radius: 50%;
             width: 40px;
             height: 40px;
@@ -145,15 +190,15 @@ thi<!DOCTYPE html>
 
         .result {
             display: none;
-            background: #e8f5e8;
-            border: 2px solid #00b894;
+            background: linear-gradient(135deg, #e8f4fd, #f0e6ff);
+            border: 2px solid #667eea;
             border-radius: 10px;
             padding: 20px;
             margin-top: 20px;
         }
 
         .result h3 {
-            color: #00b894;
+            color: #667eea;
             margin-bottom: 15px;
         }
 
@@ -196,7 +241,8 @@ thi<!DOCTYPE html>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Token Vibes</h1>
+            <h1>🚀 <span class="vibes-text">VIBES</span> <span class="dino-emoji">🦕</span></h1>
+            <h2 style="font-family: 'Brush Script MT', cursive; font-size: 1.5em; margin-top: 10px; opacity: 0.9;">Token</h2>
             <p>Professional Solana Token Creation with Metaplex Metadata</p>
         </div>
 
@@ -205,9 +251,9 @@ thi<!DOCTYPE html>
                 <h4>🔗 Connect Your Phantom Wallet</h4>
                 <p>Connect your Phantom wallet to create tokens. Your private key stays secure in your wallet - we never see it!</p>
                 <button id="connectWallet" class="btn" style="background: linear-gradient(135deg, #8A2BE2, #9932CC); margin-bottom: 20px;">
-                    🦄 Connect Phantom Wallet
+                    Connect Phantom Wallet
                 </button>
-                <div id="walletStatus" style="display: none; background: #e8f5e8; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+                <div id="walletStatus" style="display: none; background: linear-gradient(135deg, #e8f4fd, #f0e6ff); padding: 10px; border-radius: 8px; margin-bottom: 20px;">
                     <strong>✅ Connected:</strong> <span id="walletAddress"></span>
                 </div>
             </div>
@@ -245,11 +291,11 @@ thi<!DOCTYPE html>
 
                 <div class="form-group" id="walletPrivateKeyGroup" style="display: none;">
                     <label>Wallet Connected</label>
-                    <p style="color: #00b894; font-weight: 600;">✅ Phantom wallet connected securely</p>
+                    <p style="color: #667eea; font-weight: 600;">✅ Phantom wallet connected securely</p>
                 </div>
 
                 <button type="submit" class="btn" id="submitBtn">
-                    🪙 Create Token
+                    Create Token
                 </button>
             </form>
 
