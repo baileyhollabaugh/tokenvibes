@@ -1,6 +1,6 @@
-# Token Vibes - Solana Token Creation Platform
+# Token Vibes - Simple Solana Token Creation MVP
 
-A comprehensive platform for creating Solana SPL tokens with full Metaplex metadata support.
+A simple platform for creating Solana SPL tokens with basic metadata (name, symbol, quantity).
 
 ## 📁 Project Structure
 
@@ -11,9 +11,9 @@ A comprehensive platform for creating Solana SPL tokens with full Metaplex metad
 - **Deployment**: Vercel (static hosting)
 
 ### 🚀 Node.js Version (`/nodejs-version/`)
-- **Status**: Active development - Full functionality
-- **Features**: Complete Metaplex metadata, image upload, professional API
-- **Use Case**: Production-ready token creation platform
+- **Status**: Active development - MVP functionality
+- **Features**: Basic token creation with name, symbol, and quantity
+- **Use Case**: Simple token creation platform
 - **Deployment**: Railway/Render (server hosting)
 
 ## 🎯 Features Comparison
@@ -21,8 +21,8 @@ A comprehensive platform for creating Solana SPL tokens with full Metaplex metad
 | Feature | Browser Version | Node.js Version |
 |---------|----------------|-----------------|
 | Basic Token Creation | ✅ | ✅ |
-| Metaplex Metadata | ❌ | ✅ |
-| Image Upload | ❌ | ✅ |
+| Name & Symbol | ❌ | ✅ |
+| Quantity Control | ❌ | ✅ |
 | Professional API | ❌ | ✅ |
 | Error Handling | ⚠️ Basic | ✅ Advanced |
 | Scalability | ❌ Limited | ✅ Full |
@@ -51,8 +51,7 @@ npm run dev
 
 The Node.js version provides:
 - Full Solana Web3.js integration
-- Metaplex Umi library support
-- IPFS/Arweave integration
+- Basic token metadata (name, symbol, quantity)
 - Professional error handling
 - Scalable architecture
 

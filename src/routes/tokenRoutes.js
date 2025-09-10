@@ -8,7 +8,7 @@ const tokenCreator = new TokenCreator();
 // Create token endpoint
 router.post('/create', async (req, res) => {
   try {
-    const { name, symbol, description, quantity, destinationAddress, walletAddress } = req.body;
+    const { name, symbol, quantity, destinationAddress, walletAddress } = req.body;
 
     // Validate required fields
     if (!name || !symbol || !quantity || !walletAddress || !destinationAddress) {
@@ -17,15 +17,13 @@ router.post('/create', async (req, res) => {
       });
     }
 
-    // Prepare token data
+    // Prepare token data for MVP
     const tokenData = {
       name: name.trim(),
       symbol: symbol.trim().toUpperCase(),
-      description: description?.trim() || '',
       quantity: parseInt(quantity),
       decimals: 9, // Always use 9 decimals
-      destinationAddress: destinationAddress.trim(),
-      imageUri: '' // No image upload
+      destinationAddress: destinationAddress.trim()
     };
 
     // Create token on backend

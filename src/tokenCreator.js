@@ -31,19 +31,11 @@ class TokenCreator {
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
 
-      // Create metadata JSON
+      // Create simple metadata JSON for MVP
       const metadata = {
         name: tokenData.name,
         symbol: tokenData.symbol,
-        description: tokenData.description || '',
-        image: tokenData.imageUri || '',
-        external_url: '',
-        attributes: [],
-        properties: {
-          files: [],
-          category: 'image',
-          creators: []
-        }
+        quantity: tokenData.quantity
       };
 
       // For now, return a placeholder metadata URI
