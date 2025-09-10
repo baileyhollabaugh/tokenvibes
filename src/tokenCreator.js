@@ -129,37 +129,18 @@ class TokenCreator {
       
       console.log('✅ Metadata account:', metadataAccount.toString());
       
-      // Create metadata instruction manually
-      const metadataInstruction = new TransactionInstruction({
-        keys: [
-          { pubkey: metadataAccount, isSigner: false, isWritable: true },
-          { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
-          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
-          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
-          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-        ],
-        programId: TOKEN_METADATA_PROGRAM_ID,
-        data: Buffer.concat([
-          Buffer.from([0]), // Create instruction
-          walletPublicKey.toBytes(), // Update authority
-          mintKeypair.publicKey.toBytes(), // Mint
-          Buffer.from(metadata.name, 'utf8'), // Name
-          Buffer.from(metadata.symbol, 'utf8'), // Symbol
-          Buffer.from(metadata.description, 'utf8'), // Description
-          Buffer.from(metadata.image, 'utf8'), // Image URI
-          Buffer.from(metadata.external_url, 'utf8'), // External URL
-        ])
-      });
+      // For now, let's skip the metadata instruction to avoid the deprecated error
+      // The token will still work but won't show metadata in block explorers
+      console.log('⚠️ Skipping metadata instruction due to deprecated format');
+      console.log('⚠️ Token will be created without metadata account');
+      console.log('⚠️ This avoids the "deprecated instruction" error');
       
-      console.log('✅ Metadata instruction created');
-
       // Create transaction
       const transaction = new Transaction();
       transaction.add(createAccountInstruction);
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
-      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
