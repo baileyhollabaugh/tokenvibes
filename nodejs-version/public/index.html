@@ -69,28 +69,26 @@
         }
 
         .vibes-text {
-            font-family: 'Courier New', monospace;
+            font-family: 'Brush Script MT', cursive;
             font-size: 2.2em;
             font-weight: bold;
-            color: #ff0000;
-            text-shadow: 2px 2px 0px #000000;
+            color: #000000;
+            text-shadow: 1px 1px 0px #ffffff;
             display: inline-block;
             position: relative;
-        }
-
-        .vibes-pixel {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: #ff0000;
-            margin: 1px;
-            animation: drawPixel 0.1s ease-in-out forwards;
+            animation: fadeInVibes 1s ease-in-out forwards;
             opacity: 0;
         }
 
-        @keyframes drawPixel {
-            from { opacity: 0; }
-            to { opacity: 1; }
+        @keyframes fadeInVibes {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .subtitle {
@@ -409,48 +407,17 @@
             typeChar();
         }
 
-        // Pixelated drawing animation for "Vibes"
+        // Smooth cursive animation for "Vibes"
         function drawVibes() {
             const vibesText = document.getElementById('vibesText');
-            const vibesPixels = [
-                // V
-                [0,0,1,0,0,1,0,0], [0,0,1,0,0,1,0,0], [0,0,1,0,0,1,0,0], [0,0,1,0,0,1,0,0],
-                [0,0,1,0,0,1,0,0], [0,0,1,0,0,1,0,0], [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0],
-                // I
-                [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0],
-                [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0], [0,0,0,1,1,0,0,0],
-                // B
-                [0,0,1,1,1,1,0,0], [0,0,1,0,0,1,0,0], [0,0,1,0,0,1,0,0], [0,0,1,1,1,1,0,0],
-                [0,0,1,0,0,1,0,0], [0,0,1,0,0,1,0,0], [0,0,1,1,1,1,0,0], [0,0,0,0,0,0,0,0],
-                // E
-                [0,0,1,1,1,1,0,0], [0,0,1,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,1,1,1,0,0,0],
-                [0,0,1,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,1,1,1,1,0,0], [0,0,0,0,0,0,0,0],
-                // S
-                [0,0,0,1,1,1,0,0], [0,0,1,0,0,0,0,0], [0,0,1,0,0,0,0,0], [0,0,0,1,1,0,0,0],
-                [0,0,0,0,0,1,0,0], [0,0,0,0,0,1,0,0], [0,0,1,1,1,0,0,0], [0,0,0,0,0,0,0,0]
-            ];
+            const text = 'Vibes';
+            let i = 0;
             
-            let pixelIndex = 0;
-            
-            function drawNextPixel() {
-                if (pixelIndex < vibesPixels.length) {
-                    const row = vibesPixels[pixelIndex];
-                    for (let i = 0; i < row.length; i++) {
-                        if (row[i] === 1) {
-                            const pixel = document.createElement('span');
-                            pixel.className = 'vibes-pixel';
-                            pixel.style.animationDelay = (pixelIndex * 0.1) + 's';
-                            vibesText.appendChild(pixel);
-                        } else {
-                            const space = document.createElement('span');
-                            space.style.display = 'inline-block';
-                            space.style.width = '8px';
-                            space.style.height = '8px';
-                            vibesText.appendChild(space);
-                        }
-                    }
-                    pixelIndex++;
-                    setTimeout(drawNextPixel, 100);
+            function typeChar() {
+                if (i < text.length) {
+                    vibesText.textContent = text.substring(0, i + 1);
+                    i++;
+                    setTimeout(typeChar, 150);
                 } else {
                     // Restart animation after completion
                     setTimeout(() => {
@@ -461,7 +428,7 @@
                 }
             }
             
-            drawNextPixel();
+            typeChar();
         }
 
         // Start the animation when page loads
