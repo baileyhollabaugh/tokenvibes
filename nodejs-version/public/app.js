@@ -121,10 +121,22 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     
     // Submit transaction
     const connection = new solanaWeb3.Connection('https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG', 'confirmed');
-    const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-    await connection.confirmTransaction(signature, 'confirmed');
-
-    console.log('✅ Transaction confirmed:', signature);
+    
+    try {
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+      console.log('✅ Transaction sent:', signature);
+      
+      // Wait for confirmation
+      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${confirmation.value.err}`);
+      }
+      
+      console.log('✅ Transaction confirmed:', signature);
+    } catch (error) {
+      console.error('❌ Transaction failed:', error);
+      throw error;
+    }
 
     resultContent.innerHTML = `
       <div class="result-item">
@@ -135,6 +147,9 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       </div>
       <div class="result-item">
         <strong>Mint Address:</strong> ${data.data.mintAddress}
+      </div>
+      <div class="result-item">
+        <strong>Token Account:</strong> ${data.data.destinationTokenAccount}
       </div>
       <div class="result-item">
         <strong>Quantity:</strong> ${data.data.quantity.toLocaleString()}

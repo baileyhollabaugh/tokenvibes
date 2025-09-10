@@ -1,4 +1,17 @@
-const { Connection, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction } = require('@solana/web3.js');
+const { 
+  Connection, 
+  Keypair, 
+  PublicKey, 
+  SystemProgram, 
+  Transaction, 
+  TransactionInstruction,
+  createInitializeMintInstruction,
+  createMintToInstruction,
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  MINT_SIZE,
+  TOKEN_PROGRAM_ID
+} = require('@solana/web3.js');
 
 class TokenCreator {
   constructor() {
@@ -37,36 +50,65 @@ class TokenCreator {
       const mintKeypair = Keypair.generate();
       console.log('🔑 Mint address:', mintKeypair.publicKey.toString());
 
-      // Get rent exemption
-      const rentExemption = await this.connection.getMinimumBalanceForRentExemption(82);
+      // Get rent exemption for mint account
+      const rentExemption = await this.connection.getMinimumBalanceForRentExemption(MINT_SIZE);
       
-      // Create account instruction
+      // Create the mint account
       const createAccountInstruction = SystemProgram.createAccount({
         fromPubkey: walletPublicKey,
         newAccountPubkey: mintKeypair.publicKey,
         lamports: rentExemption,
-        space: 82,
-        programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID
       });
 
-      // Initialize mint instruction
-      const initializeMintData = Buffer.alloc(9);
-      initializeMintData[0] = 0; // InitializeMint instruction
-      // Leave the rest as zeros for now (decimals, mintAuthority, freezeAuthority)
-      
-      const initializeMintInstruction = new TransactionInstruction({
-        keys: [
-          { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: true },
-          { pubkey: new PublicKey('SysvarRent111111111111111111111111111111111'), isSigner: false, isWritable: false }
-        ],
-        programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-        data: initializeMintData
-      });
+      // Initialize the mint with proper parameters
+      const initializeMintInstruction = createInitializeMintInstruction(
+        mintKeypair.publicKey, // mint
+        tokenData.decimals,    // decimals
+        walletPublicKey,       // mintAuthority (who can mint new tokens)
+        walletPublicKey        // freezeAuthority (who can freeze accounts)
+      );
+
+      // Get the destination token account
+      const destinationTokenAccount = await getAssociatedTokenAddress(
+        mintKeypair.publicKey,
+        new PublicKey(tokenData.destinationAddress)
+      );
+
+      // Check if the token account exists, if not create it
+      let createTokenAccountInstruction = null;
+      try {
+        await this.connection.getAccountInfo(destinationTokenAccount);
+        console.log('✅ Token account already exists');
+      } catch (error) {
+        console.log('📝 Creating new token account');
+        createTokenAccountInstruction = createAssociatedTokenAccountInstruction(
+          walletPublicKey,                    // payer
+          destinationTokenAccount,            // associatedToken
+          new PublicKey(tokenData.destinationAddress), // owner
+          mintKeypair.publicKey               // mint
+        );
+      }
+
+      // Mint tokens to the destination account
+      const mintToInstruction = createMintToInstruction(
+        mintKeypair.publicKey,        // mint
+        destinationTokenAccount,      // destination
+        walletPublicKey,              // authority
+        tokenData.quantity * Math.pow(10, tokenData.decimals) // amount (in smallest units)
+      );
 
       // Create transaction
       const transaction = new Transaction();
       transaction.add(createAccountInstruction);
       transaction.add(initializeMintInstruction);
+      
+      if (createTokenAccountInstruction) {
+        transaction.add(createTokenAccountInstruction);
+      }
+      
+      transaction.add(mintToInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
@@ -83,6 +125,7 @@ class TokenCreator {
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
+        destinationTokenAccount: destinationTokenAccount.toString(),
         transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
       };
 
