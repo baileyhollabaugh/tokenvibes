@@ -155,6 +155,9 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
         <strong>Mint Address:</strong> ${data.data.mintAddress}
       </div>
       <div class="result-item">
+        <strong>Metadata Address:</strong> ${data.data.metadataAddress || 'N/A'}
+      </div>
+      <div class="result-item">
         <strong>Token Account:</strong> ${data.data.destinationTokenAccount}
       </div>
       <div class="result-item">
@@ -170,9 +173,15 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
         </a>
       </div>
       <div class="result-item">
+        <strong>View on Solscan:</strong>
+        <a href="https://solscan.io/token/${data.data.mintAddress}" target="_blank">
+          View Token on Solscan
+        </a>
+      </div>
+      <div class="result-item">
         <strong>Metadata:</strong>
         <a href="${data.data.metadataUri}" target="_blank">
-          View Metadata
+          View Metadata JSON
         </a>
       </div>
     `;

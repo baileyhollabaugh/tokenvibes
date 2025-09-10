@@ -20,7 +20,8 @@ const {
 // Metaplex imports
 const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
 const { mplTokenMetadata } = require('@metaplex-foundation/mpl-token-metadata');
-const { createMetadataAccountV3 } = require('@metaplex-foundation/mpl-token-metadata');
+const { createMetadataAccountV3, findMetadataPda } = require('@metaplex-foundation/mpl-token-metadata');
+const { publicKey, some, none } = require('@metaplex-foundation/umi');
 
 class TokenCreator {
   constructor() {
@@ -110,11 +111,45 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Note: For MVP, we're creating a basic SPL token
-      // The token will be functional but may not show metadata in all block explorers
-      // To show proper metadata in Solscan, we would need to add Metaplex metadata account creation
-      console.log('ℹ️ Creating basic SPL token (metadata display may be limited)');
-      console.log('ℹ️ Token will be functional with name, symbol, and quantity');
+      // Create metadata account for full block explorer support
+      console.log('📝 Creating metadata account for full block explorer display...');
+      
+      // Find metadata PDA
+      const metadataPda = findMetadataPda(this.umi, { mint: publicKey(mintKeypair.publicKey.toString()) });
+      console.log('✅ Metadata PDA:', metadataPda[0]);
+      
+      // Create metadata account instruction
+      const createMetadataInstruction = createMetadataAccountV3(this.umi, {
+        metadata: metadataPda[0],
+        mint: publicKey(mintKeypair.publicKey.toString()),
+        mintAuthority: publicKey(walletPublicKey.toString()),
+        payer: publicKey(walletPublicKey.toString()),
+        updateAuthority: publicKey(walletPublicKey.toString()),
+        data: {
+          name: metadata.name,
+          symbol: metadata.symbol,
+          uri: metadataUri,
+          sellerFeeBasisPoints: 0,
+          creators: none(),
+          collection: none(),
+          uses: none(),
+        },
+        isMutable: true,
+        collectionDetails: none(),
+      });
+      
+      console.log('✅ Metadata instruction created');
+
+      // Convert Umi instruction to Solana Web3.js instruction
+      const metadataInstruction = new TransactionInstruction({
+        keys: createMetadataInstruction.instruction.keys.map(key => ({
+          pubkey: new PublicKey(key.pubkey),
+          isSigner: key.isSigner,
+          isWritable: key.isWritable,
+        })),
+        programId: new PublicKey(createMetadataInstruction.instruction.programId),
+        data: Buffer.from(createMetadataInstruction.instruction.data),
+      });
 
       // Create transaction
       const transaction = new Transaction();
@@ -122,6 +157,7 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
+      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
@@ -134,6 +170,7 @@ class TokenCreator {
       return {
         success: true,
         mintAddress: mintKeypair.publicKey.toString(),
+        metadataAddress: metadataPda[0].toString(),
         name: tokenData.name,
         symbol: tokenData.symbol,
         quantity: tokenData.quantity,
