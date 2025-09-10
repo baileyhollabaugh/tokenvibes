@@ -2,15 +2,19 @@ const {
   Connection, 
   Keypair, 
   PublicKey, 
-  Transaction
+  SystemProgram,
+  Transaction,
+  TransactionInstruction
 } = require('@solana/web3.js');
 
 const {
-  createMint,
-  createAssociatedTokenAccount,
-  mintTo,
+  createInitializeMintInstruction,
+  createMintToInstruction,
   getAssociatedTokenAddress,
-  TOKEN_PROGRAM_ID
+  createAssociatedTokenAccountInstruction,
+  MINT_SIZE,
+  TOKEN_PROGRAM_ID,
+  getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
 class TokenCreator {
@@ -23,7 +27,7 @@ class TokenCreator {
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Creating token on backend...');
+      console.log('🚀 Preparing token creation transaction...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
 
@@ -46,65 +50,78 @@ class TokenCreator {
       const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
       console.log('✅ Metadata URI prepared:', metadataUri);
 
-      // Create the mint using the proper createMint function
-      console.log('🔑 Creating mint...');
-      const mintAddress = await createMint(
-        this.connection,
-        walletPublicKey,           // payer
-        walletPublicKey,           // mintAuthority
-        walletPublicKey,           // freezeAuthority (can be null)
-        tokenData.decimals         // decimals
-      );
+      // Create mint keypair
+      const mintKeypair = Keypair.generate();
+      console.log('🔑 Mint address:', mintKeypair.publicKey.toString());
 
-      console.log('✅ Mint created:', mintAddress.toString());
+      // Get rent exemption for mint account
+      const rentExemption = await getMinimumBalanceForRentExemptMint(this.connection);
+      
+      // Create the mint account
+      const createAccountInstruction = SystemProgram.createAccount({
+        fromPubkey: walletPublicKey,
+        newAccountPubkey: mintKeypair.publicKey,
+        lamports: rentExemption,
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID
+      });
+
+      // Initialize the mint
+      const initializeMintInstruction = createInitializeMintInstruction(
+        mintKeypair.publicKey, // mint
+        tokenData.decimals,    // decimals
+        walletPublicKey,       // mintAuthority
+        walletPublicKey        // freezeAuthority
+      );
 
       // Get the destination token account address
       const destinationTokenAccount = await getAssociatedTokenAddress(
-        mintAddress,
+        mintKeypair.publicKey,
         new PublicKey(tokenData.destinationAddress)
       );
 
-      console.log('📝 Creating associated token account...');
-      
-      // Create the associated token account if it doesn't exist
-      try {
-        await createAssociatedTokenAccount(
-          this.connection,
-          walletPublicKey,                    // payer
-          new PublicKey(tokenData.destinationAddress), // owner
-          mintAddress                         // mint
-        );
-        console.log('✅ Associated token account created');
-      } catch (error) {
-        // Account might already exist, that's okay
-        console.log('ℹ️ Token account may already exist:', error.message);
-      }
-
-      console.log('🪙 Minting tokens...');
-      
-      // Mint tokens to the destination account
-      const signature = await mintTo(
-        this.connection,
-        walletPublicKey,           // payer
-        mintAddress,               // mint
-        destinationTokenAccount,   // destination
-        walletPublicKey,           // authority
-        tokenData.quantity * Math.pow(10, tokenData.decimals) // amount (in smallest units)
+      // Create associated token account instruction
+      const createTokenAccountInstruction = createAssociatedTokenAccountInstruction(
+        walletPublicKey,                    // payer
+        destinationTokenAccount,            // associatedToken
+        new PublicKey(tokenData.destinationAddress), // owner
+        mintKeypair.publicKey               // mint
       );
 
-      console.log('✅ Tokens minted, signature:', signature);
+      // Mint tokens to the destination account
+      const mintToInstruction = createMintToInstruction(
+        mintKeypair.publicKey,        // mint
+        destinationTokenAccount,      // destination
+        walletPublicKey,              // authority
+        tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
+      );
 
-      // Return the results
+      // Create transaction
+      const transaction = new Transaction();
+      transaction.add(createAccountInstruction);
+      transaction.add(initializeMintInstruction);
+      transaction.add(createTokenAccountInstruction);
+      transaction.add(mintToInstruction);
+
+      // Set recent blockhash
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = walletPublicKey;
+
+      console.log('✅ Transaction prepared for signing');
+
+      // Return the transaction for frontend signing
       return {
         success: true,
-        mintAddress: mintAddress.toString(),
+        mintAddress: mintKeypair.publicKey.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
+        mintKeypair: Array.from(mintKeypair.secretKey),
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
         destinationTokenAccount: destinationTokenAccount.toString(),
-        signature: signature
+        transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
       };
 
     } catch (error) {
