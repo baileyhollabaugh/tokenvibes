@@ -2,16 +2,20 @@ const {
   Connection, 
   Keypair, 
   PublicKey, 
-  Transaction
+  SystemProgram,
+  Transaction,
+  TransactionInstruction
 } = require('@solana/web3.js');
 
-// Metaplex Umi imports
-const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
-const { keypairIdentity, generateSigner, percentAmount, publicKey } = require('@metaplex-foundation/umi');
-const { createFungible } = require('@metaplex-foundation/mpl-token-metadata');
-const { createTokenIfMissing } = require('@metaplex-foundation/mpl-toolbox');
-const { fromWeb3JsKeypair } = require('@metaplex-foundation/umi-web3js-adapters');
-const { getAssociatedTokenAddress } = require('@solana/spl-token');
+const {
+  createInitializeMintInstruction,
+  createMintToInstruction,
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  MINT_SIZE,
+  TOKEN_PROGRAM_ID,
+  getMinimumBalanceForRentExemptMint
+} = require('@solana/spl-token');
 
 class TokenCreator {
   constructor() {
@@ -23,13 +27,9 @@ class TokenCreator {
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Creating token with Metaplex metadata...');
+      console.log('🚀 Preparing token creation transaction...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
-
-      // Create Umi instance
-      const umi = createUmi(this.connection.rpcEndpoint)
-        .use(keypairIdentity(fromWeb3JsKeypair(Keypair.generate()))); // Use a random keypair for Umi
 
       // Create metadata JSON
       const metadata = {
@@ -50,57 +50,78 @@ class TokenCreator {
       const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
       console.log('✅ Metadata URI prepared:', metadataUri);
 
-      // Create the mint signer
-      const mint = generateSigner(umi);
-      console.log('🔑 Mint address:', mint.publicKey.toString());
+      // Create mint keypair
+      const mintKeypair = Keypair.generate();
+      console.log('🔑 Mint address:', mintKeypair.publicKey.toString());
 
-      // Create the token with metadata using Metaplex Umi
-      console.log('🪙 Creating fungible token with metadata...');
-      const result = await createFungible(umi, {
-        mint,
-        name: tokenData.name,
-        symbol: tokenData.symbol,
-        uri: metadataUri,
-        sellerFeeBasisPoints: percentAmount(0), // 0% royalty
-        decimals: tokenData.decimals,
-        tokenOwner: publicKey(walletPublicKey.toString()),
-        amount: BigInt(tokenData.quantity * Math.pow(10, tokenData.decimals)),
-        tokenStandard: 0, // Fungible token standard
-      }).sendAndConfirm(umi);
+      // Get rent exemption for mint account
+      const rentExemption = await getMinimumBalanceForRentExemptMint(this.connection);
+      
+      // Create the mint account
+      const createAccountInstruction = SystemProgram.createAccount({
+        fromPubkey: walletPublicKey,
+        newAccountPubkey: mintKeypair.publicKey,
+        lamports: rentExemption,
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID
+      });
 
-      console.log('✅ Token created with metadata:', result);
+      // Initialize the mint
+      const initializeMintInstruction = createInitializeMintInstruction(
+        mintKeypair.publicKey, // mint
+        tokenData.decimals,    // decimals
+        walletPublicKey,       // mintAuthority
+        walletPublicKey        // freezeAuthority
+      );
 
       // Get the destination token account address
       const destinationTokenAccount = await getAssociatedTokenAddress(
-        new PublicKey(mint.publicKey.toString()),
+        mintKeypair.publicKey,
         new PublicKey(tokenData.destinationAddress)
       );
 
-      // Create associated token account if needed
-      try {
-        await createTokenIfMissing(umi, {
-          mint: publicKey(mint.publicKey.toString()),
-          owner: publicKey(tokenData.destinationAddress),
-          amount: 0n,
-        });
-        console.log('✅ Associated token account created');
-      } catch (error) {
-        console.log('ℹ️ Token account may already exist:', error.message);
-      }
+      // Create associated token account instruction
+      const createTokenAccountInstruction = createAssociatedTokenAccountInstruction(
+        walletPublicKey,                    // payer
+        destinationTokenAccount,            // associatedToken
+        new PublicKey(tokenData.destinationAddress), // owner
+        mintKeypair.publicKey               // mint
+      );
 
-      console.log('✅ Token creation completed with signature:', result.signature);
+      // Mint tokens to the destination account
+      const mintToInstruction = createMintToInstruction(
+        mintKeypair.publicKey,        // mint
+        destinationTokenAccount,      // destination
+        walletPublicKey,              // authority
+        tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
+      );
 
-      // Return the results
+      // Create transaction
+      const transaction = new Transaction();
+      transaction.add(createAccountInstruction);
+      transaction.add(initializeMintInstruction);
+      transaction.add(createTokenAccountInstruction);
+      transaction.add(mintToInstruction);
+
+      // Set recent blockhash
+      const { blockhash } = await this.connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = walletPublicKey;
+
+      console.log('✅ Transaction prepared for signing');
+
+      // Return the transaction for frontend signing
       return {
         success: true,
-        mintAddress: mint.publicKey.toString(),
+        mintAddress: mintKeypair.publicKey.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
+        mintKeypair: Array.from(mintKeypair.secretKey),
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
         destinationTokenAccount: destinationTokenAccount.toString(),
-        signature: result.signature
+        transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
       };
 
     } catch (error) {
