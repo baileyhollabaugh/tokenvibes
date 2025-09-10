@@ -77,9 +77,10 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
   const result = document.getElementById('result');
   const resultContent = document.getElementById('resultContent');
 
-  // Show loading
+  // Show loading with Token the T-Rex
   submitBtn.disabled = true;
-  loading.style.display = 'block';
+  loading.style.display = 'none';
+  document.getElementById('trexLoading').style.display = 'block';
   result.style.display = 'none';
 
   try {
@@ -195,5 +196,6 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     result.style.display = 'block';
     submitBtn.disabled = false;
     loading.style.display = 'none';
+    document.getElementById('trexLoading').style.display = 'none';
   }
 });
