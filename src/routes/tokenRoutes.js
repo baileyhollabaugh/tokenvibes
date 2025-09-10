@@ -1,5 +1,6 @@
 const express = require('express');
 const TokenCreator = require('../tokenCreator');
+const { PublicKey } = require('@solana/web3.js');
 
 const router = express.Router();
 const tokenCreator = new TokenCreator();
@@ -27,8 +28,9 @@ router.post('/create', async (req, res) => {
       imageUri: '' // No image upload
     };
 
-    // Prepare metadata and return data for frontend signing
-    const result = await tokenCreator.prepareTokenMetadata(tokenData);
+    // Create token on backend
+    const walletPublicKey = new PublicKey(walletAddress);
+    const result = await tokenCreator.createToken(tokenData, walletPublicKey);
 
     res.json({
       success: true,
