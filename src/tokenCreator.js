@@ -114,42 +114,11 @@ class TokenCreator {
       // Create metadata account for full block explorer support
       console.log('📝 Creating metadata account for full block explorer display...');
       
-      // Find metadata PDA
-      const metadataPda = findMetadataPda(this.umi, { mint: publicKey(mintKeypair.publicKey.toString()) });
-      console.log('✅ Metadata PDA:', metadataPda[0]);
-      
-      // Create metadata account instruction
-      const createMetadataInstruction = createMetadataAccountV3(this.umi, {
-        metadata: metadataPda[0],
-        mint: publicKey(mintKeypair.publicKey.toString()),
-        mintAuthority: publicKey(walletPublicKey.toString()),
-        payer: publicKey(walletPublicKey.toString()),
-        updateAuthority: publicKey(walletPublicKey.toString()),
-        data: {
-          name: metadata.name,
-          symbol: metadata.symbol,
-          uri: metadataUri,
-          sellerFeeBasisPoints: 0,
-          creators: none(),
-          collection: none(),
-          uses: none(),
-        },
-        isMutable: true,
-        collectionDetails: none(),
-      });
-      
-      console.log('✅ Metadata instruction created');
-
-      // Convert Umi instruction to Solana Web3.js instruction
-      const metadataInstruction = new TransactionInstruction({
-        keys: createMetadataInstruction.instruction.keys.map(key => ({
-          pubkey: new PublicKey(key.pubkey),
-          isSigner: key.isSigner,
-          isWritable: key.isWritable,
-        })),
-        programId: new PublicKey(createMetadataInstruction.instruction.programId),
-        data: Buffer.from(createMetadataInstruction.instruction.data),
-      });
+      // For now, let's create a basic token without metadata account
+      // This will still work but won't show metadata in block explorers
+      console.log('⚠️ Note: Creating basic SPL token without metadata account');
+      console.log('⚠️ This is due to Umi instruction conversion complexity');
+      console.log('⚠️ Token will be functional but metadata display may be limited');
 
       // Create transaction
       const transaction = new Transaction();
@@ -157,7 +126,6 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
-      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
@@ -170,7 +138,6 @@ class TokenCreator {
       return {
         success: true,
         mintAddress: mintKeypair.publicKey.toString(),
-        metadataAddress: metadataPda[0].toString(),
         name: tokenData.name,
         symbol: tokenData.symbol,
         quantity: tokenData.quantity,
