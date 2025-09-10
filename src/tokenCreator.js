@@ -17,11 +17,8 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
-// Metaplex imports
-const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
-const { mplTokenMetadata } = require('@metaplex-foundation/mpl-token-metadata');
-const { createMetadataAccountV3, findMetadataPda } = require('@metaplex-foundation/mpl-token-metadata');
-const { publicKey, some, none } = require('@metaplex-foundation/umi');
+// Metaplex Token Metadata Program ID
+const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
 class TokenCreator {
   constructor() {
@@ -30,9 +27,6 @@ class TokenCreator {
       'confirmed'
     );
     
-    // Setup Umi for Metaplex
-    this.umi = createUmi(this.connection.rpcEndpoint);
-    this.umi.use(mplTokenMetadata());
   }
 
   async createToken(tokenData, walletPublicKey) {
@@ -114,8 +108,6 @@ class TokenCreator {
       // Create metadata account for block explorer display
       console.log('📝 Creating metadata account for name/ticker display...');
       
-      // Metaplex Token Metadata Program ID
-      const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
       
       // Find metadata PDA
       const [metadataAccount] = PublicKey.findProgramAddressSync(
@@ -132,7 +124,11 @@ class TokenCreator {
       // Create proper metadata instruction using modern format
       console.log('📝 Creating modern metadata instruction...');
       
-      // Create metadata account instruction using the correct format
+      // Create metadata account instruction using CreateMetadataAccountV2 format
+      const nameBytes = Buffer.from(metadata.name, 'utf8');
+      const symbolBytes = Buffer.from(metadata.symbol, 'utf8');
+      const uriBytes = Buffer.from(metadataUri, 'utf8');
+
       const metadataInstruction = new TransactionInstruction({
         keys: [
           { pubkey: metadataAccount, isSigner: false, isWritable: true },
@@ -140,22 +136,19 @@ class TokenCreator {
           { pubkey: walletPublicKey, isSigner: true, isWritable: false },
           { pubkey: walletPublicKey, isSigner: true, isWritable: false },
           { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-          { pubkey: new PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false }, // Rent sysvar
         ],
         programId: TOKEN_METADATA_PROGRAM_ID,
         data: Buffer.concat([
-          Buffer.from([33]), // CreateMetadataAccountV3 instruction
+          Buffer.from([1]), // CreateMetadataAccountV2 instruction
           Buffer.from([1]), // isMutable = true
-          Buffer.from([0]), // collection details = none
-          Buffer.from([0]), // uses = none
-          Buffer.from([0]), // seller fee basis points = 0
+          Buffer.from([nameBytes.length]), // data name length
+          nameBytes, // name
+          Buffer.from([symbolBytes.length]), // data symbol length
+          symbolBytes, // symbol
+          Buffer.from([uriBytes.length]), // data uri length
+          uriBytes, // uri
+          Buffer.from([0, 0]), // seller fee basis points = 0 (2 bytes)
           Buffer.from([0]), // creators length = 0
-          Buffer.from([0]), // name length
-          Buffer.from(metadata.name, 'utf8'), // name
-          Buffer.from([0]), // symbol length  
-          Buffer.from(metadata.symbol, 'utf8'), // symbol
-          Buffer.from([0]), // uri length
-          Buffer.from(metadataUri, 'utf8'), // uri
         ])
       });
       
