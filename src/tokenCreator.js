@@ -17,12 +17,21 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
+// Metaplex imports
+const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
+const { mplTokenMetadata } = require('@metaplex-foundation/mpl-token-metadata');
+const { createMetadataAccountV3 } = require('@metaplex-foundation/mpl-token-metadata');
+
 class TokenCreator {
   constructor() {
     this.connection = new Connection(
       process.env.SOLANA_RPC_URL || 'https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG',
       'confirmed'
     );
+    
+    // Setup Umi for Metaplex
+    this.umi = createUmi(this.connection.rpcEndpoint);
+    this.umi.use(mplTokenMetadata());
   }
 
   async createToken(tokenData, walletPublicKey) {
@@ -31,11 +40,24 @@ class TokenCreator {
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
 
-      // Create simple metadata JSON for MVP
+      // Create Metaplex-compliant metadata for block explorer display
       const metadata = {
         name: tokenData.name,
         symbol: tokenData.symbol,
-        quantity: tokenData.quantity
+        description: `${tokenData.name} (${tokenData.symbol}) - Total Supply: ${tokenData.quantity.toLocaleString()}`,
+        image: "", // No image for MVP
+        external_url: "",
+        attributes: [
+          {
+            trait_type: "Total Supply",
+            value: tokenData.quantity.toString()
+          }
+        ],
+        properties: {
+          files: [],
+          category: "token",
+          creators: []
+        }
       };
 
       // For now, return a placeholder metadata URI
@@ -88,6 +110,12 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
+      // Note: For MVP, we're creating a basic SPL token
+      // The token will be functional but may not show metadata in all block explorers
+      // To show proper metadata in Solscan, we would need to add Metaplex metadata account creation
+      console.log('ℹ️ Creating basic SPL token (metadata display may be limited)');
+      console.log('ℹ️ Token will be functional with name, symbol, and quantity');
+
       // Create transaction
       const transaction = new Transaction();
       transaction.add(createAccountInstruction);
@@ -106,13 +134,15 @@ class TokenCreator {
       return {
         success: true,
         mintAddress: mintKeypair.publicKey.toString(),
-        metadataUri: metadataUri,
-        metadata: metadata,
-        mintKeypair: Array.from(mintKeypair.secretKey),
+        name: tokenData.name,
+        symbol: tokenData.symbol,
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
         destinationTokenAccount: destinationTokenAccount.toString(),
+        metadata: metadata,
+        metadataUri: metadataUri,
+        mintKeypair: Array.from(mintKeypair.secretKey),
         transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
       };
 
