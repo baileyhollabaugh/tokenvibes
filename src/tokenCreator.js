@@ -160,8 +160,7 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
-      // TODO: Add metadata instruction back once basic functionality is working
-      // transaction.add(metadataInstruction);
+      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
