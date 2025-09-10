@@ -1,5 +1,6 @@
-console.log('🚀 APP.JS LOADED - VERSION 8 - NEW CODE');
+console.log('🚀 APP.JS LOADED - VERSION 9 - NEW CODE');
 console.log('🚀 Timestamp:', Date.now());
+console.log('🚀 If you see v=3 in errors, browser is caching old version!');
 
 let wallet = null;
 let walletAddress = null;
