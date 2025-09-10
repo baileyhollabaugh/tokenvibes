@@ -115,6 +115,8 @@ class TokenCreator {
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = walletPublicKey;
 
+      // Note: The mint keypair will be signed by the frontend
+
       // Return the transaction for frontend signing
       return {
         success: true,

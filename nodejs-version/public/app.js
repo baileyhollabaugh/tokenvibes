@@ -116,7 +116,11 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     // Sign and submit transaction
     const transaction = solanaWeb3.Transaction.from(Buffer.from(data.data.transaction, 'base64'));
     
-    // Sign with Phantom wallet
+    // Create the mint keypair from the secret key
+    const mintKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(data.data.mintKeypair));
+    
+    // Sign with both the wallet and the mint keypair
+    transaction.partialSign(mintKeypair);
     const signedTransaction = await wallet.signTransaction(transaction);
     
     // Submit transaction
