@@ -169,6 +169,17 @@ class TokenCreator {
       transaction.feePayer = walletPublicKey;
 
       console.log('✅ Transaction prepared for signing');
+      console.log('Transaction instructions count:', transaction.instructions.length);
+
+      // Serialize transaction with error handling
+      let serializedTransaction;
+      try {
+        serializedTransaction = transaction.serialize({ requireAllSignatures: false });
+        console.log('✅ Transaction serialized successfully, length:', serializedTransaction.length);
+      } catch (serializeError) {
+        console.error('❌ Transaction serialization failed:', serializeError);
+        throw new Error(`Transaction serialization failed: ${serializeError.message}`);
+      }
 
       // Return the transaction for frontend signing
       return {
@@ -184,7 +195,7 @@ class TokenCreator {
         metadata: metadata,
         metadataUri: metadataUri,
         mintKeypair: Array.from(mintKeypair.secretKey),
-        transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
+        transaction: serializedTransaction.toString('base64')
       };
 
     } catch (error) {
