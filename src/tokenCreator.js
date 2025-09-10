@@ -143,15 +143,22 @@ class TokenCreator {
       
       console.log('✅ Official Metaplex metadata instruction created');
       
-      // Convert Umi instruction to Solana TransactionInstruction
+      // Convert Umi TransactionBuilder to Solana TransactionInstruction
+      // The Umi instruction is a TransactionBuilder with items array
+      console.log('Umi instruction structure:', createMetadataInstruction);
+      
+      // Extract the instruction from the TransactionBuilder
+      const umiInstruction = createMetadataInstruction.items[0].instruction;
+      console.log('Umi instruction data:', umiInstruction);
+      
       const metadataInstruction = new TransactionInstruction({
-        keys: createMetadataInstruction.instruction.keys.map(key => ({
+        keys: umiInstruction.keys.map(key => ({
           pubkey: new PublicKey(key.pubkey),
           isSigner: key.isSigner,
           isWritable: key.isWritable,
         })),
-        programId: new PublicKey(createMetadataInstruction.instruction.programId),
-        data: Buffer.from(createMetadataInstruction.instruction.data),
+        programId: new PublicKey(umiInstruction.programId),
+        data: Buffer.from(umiInstruction.data),
       });
 
       // Create transaction
