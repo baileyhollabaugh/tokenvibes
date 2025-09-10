@@ -32,6 +32,7 @@ document.getElementById('connectWallet').addEventListener('click', async () => {
     document.getElementById('walletAddress').textContent = walletAddress;
     document.getElementById('connectWallet').style.display = 'none';
     document.getElementById('walletPrivateKeyGroup').style.display = 'block';
+    document.getElementById('walletInfo').style.display = 'none';
 
     // Auto-fill destination address with connected wallet
     document.getElementById('destinationAddress').value = walletAddress;
@@ -55,6 +56,7 @@ window.addEventListener('load', async () => {
       document.getElementById('walletAddress').textContent = walletAddress;
       document.getElementById('connectWallet').style.display = 'none';
       document.getElementById('walletPrivateKeyGroup').style.display = 'block';
+      document.getElementById('walletInfo').style.display = 'none';
 
       // Auto-fill destination address with connected wallet
       document.getElementById('destinationAddress').value = walletAddress;
@@ -181,11 +183,8 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
         <strong style="color: #00b894;">✅ Transaction Submitted Successfully!</strong><br>
         <p style="margin: 10px 0; color: #2d3436;">Your token has been created on Solana. Even if confirmation timed out, the transaction was submitted successfully.</p>
         <div style="margin-top: 15px;">
-          <a href="https://solscan.io/tx/${signature}" target="_blank" style="background: #1e3a8a; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-right: 10px; display: inline-block;">
+          <a href="https://solscan.io/tx/${signature}" target="_blank" style="background: #1e3a8a; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">
             🔍 View Transaction on Solscan
-          </a>
-          <a href="https://explorer.solana.com/tx/${signature}" target="_blank" style="background: #6c5ce7; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; display: inline-block;">
-            📊 View on Solana Explorer
           </a>
         </div>
         <div style="margin-top: 10px;">

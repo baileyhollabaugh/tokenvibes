@@ -395,11 +395,12 @@
         }
 
         .wallet-status {
-            background: #ffffff;
-            border: 2px inset #c0c0c0;
+            background: transparent;
+            border: none;
             padding: 10px;
             margin-bottom: 20px;
             display: none;
+            text-align: center;
         }
 
         .loading {
@@ -499,7 +500,7 @@
         </div>
 
         <div class="form-container">
-            <div class="wallet-info">
+            <div class="wallet-info" id="walletInfo">
                 <h4>Connect Your Phantom Wallet</h4>
                 <button id="connectWallet" class="btn btn-secondary">
                     Connect Phantom Wallet
