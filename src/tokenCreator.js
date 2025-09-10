@@ -129,11 +129,37 @@ class TokenCreator {
       
       console.log('✅ Metadata account:', metadataAccount.toString());
       
-      // For now, let's skip the metadata instruction to avoid the deprecated error
-      // The token will still work but won't show metadata in block explorers
-      console.log('⚠️ Skipping metadata instruction due to deprecated format');
-      console.log('⚠️ Token will be created without metadata account');
-      console.log('⚠️ This avoids the "deprecated instruction" error');
+      // Create proper metadata instruction using modern format
+      console.log('📝 Creating modern metadata instruction...');
+      
+      // Create metadata account instruction using the correct format
+      const metadataInstruction = new TransactionInstruction({
+        keys: [
+          { pubkey: metadataAccount, isSigner: false, isWritable: true },
+          { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
+          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
+          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+          { pubkey: new PublicKey('11111111111111111111111111111111'), isSigner: false, isWritable: false }, // Rent sysvar
+        ],
+        programId: TOKEN_METADATA_PROGRAM_ID,
+        data: Buffer.concat([
+          Buffer.from([33]), // CreateMetadataAccountV3 instruction
+          Buffer.from([1]), // isMutable = true
+          Buffer.from([0]), // collection details = none
+          Buffer.from([0]), // uses = none
+          Buffer.from([0]), // seller fee basis points = 0
+          Buffer.from([0]), // creators length = 0
+          Buffer.from([0]), // name length
+          Buffer.from(metadata.name, 'utf8'), // name
+          Buffer.from([0]), // symbol length  
+          Buffer.from(metadata.symbol, 'utf8'), // symbol
+          Buffer.from([0]), // uri length
+          Buffer.from(metadataUri, 'utf8'), // uri
+        ])
+      });
+      
+      console.log('✅ Modern metadata instruction created');
       
       // Create transaction
       const transaction = new Transaction();
@@ -141,6 +167,7 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
+      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
