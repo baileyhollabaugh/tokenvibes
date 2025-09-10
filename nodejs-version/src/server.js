@@ -59,6 +59,11 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Serve admin dashboard
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
