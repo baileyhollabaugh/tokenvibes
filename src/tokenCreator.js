@@ -111,14 +111,47 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata account for full block explorer support
-      console.log('📝 Creating metadata account for full block explorer display...');
+      // Create metadata account for block explorer display
+      console.log('📝 Creating metadata account for name/ticker display...');
       
-      // For now, let's create a basic token without metadata account
-      // This will still work but won't show metadata in block explorers
-      console.log('⚠️ Note: Creating basic SPL token without metadata account');
-      console.log('⚠️ This is due to Umi instruction conversion complexity');
-      console.log('⚠️ Token will be functional but metadata display may be limited');
+      // Metaplex Token Metadata Program ID
+      const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+      
+      // Find metadata PDA
+      const [metadataAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBytes(),
+          mintKeypair.publicKey.toBytes()
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+      
+      console.log('✅ Metadata account:', metadataAccount.toString());
+      
+      // Create metadata instruction manually
+      const metadataInstruction = new TransactionInstruction({
+        keys: [
+          { pubkey: metadataAccount, isSigner: false, isWritable: true },
+          { pubkey: mintKeypair.publicKey, isSigner: false, isWritable: false },
+          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
+          { pubkey: walletPublicKey, isSigner: true, isWritable: false },
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+        ],
+        programId: TOKEN_METADATA_PROGRAM_ID,
+        data: Buffer.concat([
+          Buffer.from([0]), // Create instruction
+          walletPublicKey.toBytes(), // Update authority
+          mintKeypair.publicKey.toBytes(), // Mint
+          Buffer.from(metadata.name, 'utf8'), // Name
+          Buffer.from(metadata.symbol, 'utf8'), // Symbol
+          Buffer.from(metadata.description, 'utf8'), // Description
+          Buffer.from(metadata.image, 'utf8'), // Image URI
+          Buffer.from(metadata.external_url, 'utf8'), // External URL
+        ])
+      });
+      
+      console.log('✅ Metadata instruction created');
 
       // Create transaction
       const transaction = new Transaction();
@@ -126,6 +159,7 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
+      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
@@ -138,6 +172,7 @@ class TokenCreator {
       return {
         success: true,
         mintAddress: mintKeypair.publicKey.toString(),
+        metadataAddress: metadataAccount.toString(),
         name: tokenData.name,
         symbol: tokenData.symbol,
         quantity: tokenData.quantity,

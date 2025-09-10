@@ -155,6 +155,9 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
         <strong>Mint Address:</strong> ${data.data.mintAddress}
       </div>
       <div class="result-item">
+        <strong>Metadata Address:</strong> ${data.data.metadataAddress || 'N/A'}
+      </div>
+      <div class="result-item">
         <strong>Token Account:</strong> ${data.data.destinationTokenAccount}
       </div>
       <div class="result-item">
