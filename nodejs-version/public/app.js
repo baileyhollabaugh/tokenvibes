@@ -114,36 +114,12 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       throw new Error(data.error);
     }
 
-    console.log('✅ Token transaction prepared on backend:', data.data);
+    console.log('✅ Token created with Metaplex metadata:', data.data);
 
-    // Sign and submit transaction
-    const transaction = solanaWeb3.Transaction.from(Buffer.from(data.data.transaction, 'base64'));
-    
-    // Create the mint keypair from the secret key
-    const mintKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(data.data.mintKeypair));
-    
-    // Sign with both the wallet and the mint keypair
-    transaction.partialSign(mintKeypair);
-    const signedTransaction = await wallet.signTransaction(transaction);
-    
-    // Submit transaction
-    const connection = new solanaWeb3.Connection('https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG', 'confirmed');
-    
-    try {
-      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-      console.log('✅ Transaction sent:', signature);
-      
-      // Wait for confirmation
-      const confirmation = await connection.confirmTransaction(signature, 'confirmed');
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${confirmation.value.err}`);
-      }
-      
-      console.log('✅ Transaction confirmed:', signature);
-    } catch (error) {
-      console.error('❌ Transaction failed:', error);
-      throw error;
-    }
+    // The token creation is now handled entirely on the backend with Metaplex Umi
+    // No need for frontend transaction signing
+    const signature = data.data.signature;
+    console.log('✅ Token creation completed with signature:', signature);
 
     resultContent.innerHTML = `
       <div class="result-item">

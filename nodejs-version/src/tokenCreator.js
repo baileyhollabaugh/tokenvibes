@@ -2,20 +2,16 @@ const {
   Connection, 
   Keypair, 
   PublicKey, 
-  SystemProgram,
-  Transaction,
-  TransactionInstruction
+  Transaction
 } = require('@solana/web3.js');
 
-const {
-  createInitializeMintInstruction,
-  createMintToInstruction,
-  getAssociatedTokenAddress,
-  createAssociatedTokenAccountInstruction,
-  MINT_SIZE,
-  TOKEN_PROGRAM_ID,
-  getMinimumBalanceForRentExemptMint
-} = require('@solana/spl-token');
+// Metaplex Umi imports
+const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
+const { keypairIdentity, generateSigner, percentAmount, publicKey } = require('@metaplex-foundation/umi');
+const { createFungible } = require('@metaplex-foundation/mpl-token-metadata');
+const { createTokenIfMissing } = require('@metaplex-foundation/mpl-toolbox');
+const { fromWeb3JsKeypair } = require('@metaplex-foundation/umi-web3js-adapters');
+const { getAssociatedTokenAddress } = require('@solana/spl-token');
 
 class TokenCreator {
   constructor() {
@@ -27,15 +23,19 @@ class TokenCreator {
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Preparing token creation transaction...');
+      console.log('🚀 Creating token with Metaplex metadata...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
+
+      // Create Umi instance
+      const umi = createUmi(this.connection.rpcEndpoint)
+        .use(keypairIdentity(fromWeb3JsKeypair(Keypair.generate()))); // Use a random keypair for Umi
 
       // Create metadata JSON
       const metadata = {
         name: tokenData.name,
         symbol: tokenData.symbol,
-        description: tokenData.description,
+        description: tokenData.description || '',
         image: tokenData.imageUri || '',
         external_url: '',
         attributes: [],
@@ -50,78 +50,57 @@ class TokenCreator {
       const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
       console.log('✅ Metadata URI prepared:', metadataUri);
 
-      // Create mint keypair
-      const mintKeypair = Keypair.generate();
-      console.log('🔑 Mint address:', mintKeypair.publicKey.toString());
+      // Create the mint signer
+      const mint = generateSigner(umi);
+      console.log('🔑 Mint address:', mint.publicKey.toString());
 
-      // Get rent exemption for mint account
-      const rentExemption = await getMinimumBalanceForRentExemptMint(this.connection);
-      
-      // Create the mint account
-      const createAccountInstruction = SystemProgram.createAccount({
-        fromPubkey: walletPublicKey,
-        newAccountPubkey: mintKeypair.publicKey,
-        lamports: rentExemption,
-        space: MINT_SIZE,
-        programId: TOKEN_PROGRAM_ID
-      });
+      // Create the token with metadata using Metaplex Umi
+      console.log('🪙 Creating fungible token with metadata...');
+      const result = await createFungible(umi, {
+        mint,
+        name: tokenData.name,
+        symbol: tokenData.symbol,
+        uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(0), // 0% royalty
+        decimals: tokenData.decimals,
+        tokenOwner: publicKey(walletPublicKey.toString()),
+        amount: BigInt(tokenData.quantity * Math.pow(10, tokenData.decimals)),
+        tokenStandard: 0, // Fungible token standard
+      }).sendAndConfirm(umi);
 
-      // Initialize the mint
-      const initializeMintInstruction = createInitializeMintInstruction(
-        mintKeypair.publicKey, // mint
-        tokenData.decimals,    // decimals
-        walletPublicKey,       // mintAuthority
-        walletPublicKey        // freezeAuthority
-      );
+      console.log('✅ Token created with metadata:', result);
 
       // Get the destination token account address
       const destinationTokenAccount = await getAssociatedTokenAddress(
-        mintKeypair.publicKey,
+        new PublicKey(mint.publicKey.toString()),
         new PublicKey(tokenData.destinationAddress)
       );
 
-      // Create associated token account instruction
-      const createTokenAccountInstruction = createAssociatedTokenAccountInstruction(
-        walletPublicKey,                    // payer
-        destinationTokenAccount,            // associatedToken
-        new PublicKey(tokenData.destinationAddress), // owner
-        mintKeypair.publicKey               // mint
-      );
+      // Create associated token account if needed
+      try {
+        await createTokenIfMissing(umi, {
+          mint: publicKey(mint.publicKey.toString()),
+          owner: publicKey(tokenData.destinationAddress),
+          amount: 0n,
+        });
+        console.log('✅ Associated token account created');
+      } catch (error) {
+        console.log('ℹ️ Token account may already exist:', error.message);
+      }
 
-      // Mint tokens to the destination account
-      const mintToInstruction = createMintToInstruction(
-        mintKeypair.publicKey,        // mint
-        destinationTokenAccount,      // destination
-        walletPublicKey,              // authority
-        tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
-      );
+      console.log('✅ Token creation completed with signature:', result.signature);
 
-      // Create transaction
-      const transaction = new Transaction();
-      transaction.add(createAccountInstruction);
-      transaction.add(initializeMintInstruction);
-      transaction.add(createTokenAccountInstruction);
-      transaction.add(mintToInstruction);
-
-      // Set recent blockhash
-      const { blockhash } = await this.connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = walletPublicKey;
-
-      console.log('✅ Transaction prepared for signing');
-
-      // Return the transaction for frontend signing
+      // Return the results
       return {
         success: true,
-        mintAddress: mintKeypair.publicKey.toString(),
+        mintAddress: mint.publicKey.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
-        mintKeypair: Array.from(mintKeypair.secretKey),
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
         destinationTokenAccount: destinationTokenAccount.toString(),
-        transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
+        signature: result.signature
       };
 
     } catch (error) {
