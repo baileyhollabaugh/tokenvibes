@@ -95,11 +95,128 @@
             font-size: 1.2em;
             color: #ffffff;
             text-shadow: 1px 1px 0px #000000;
+            display: none;
         }
 
         .form-container {
             padding: 30px;
             background: #c0c0c0;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Pixelated cloud animation */
+        .clouds {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .cloud {
+            position: absolute;
+            background: #ffffff;
+            border-radius: 50px;
+            opacity: 0.8;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .cloud:before {
+            content: '';
+            position: absolute;
+            background: #ffffff;
+            border-radius: 50px;
+        }
+
+        .cloud:after {
+            content: '';
+            position: absolute;
+            background: #ffffff;
+            border-radius: 50px;
+        }
+
+        .cloud1 {
+            width: 80px;
+            height: 40px;
+            top: 20%;
+            animation: moveCloud1 20s linear infinite;
+        }
+
+        .cloud1:before {
+            width: 50px;
+            height: 50px;
+            top: -25px;
+            left: 10px;
+        }
+
+        .cloud1:after {
+            width: 60px;
+            height: 40px;
+            top: -15px;
+            right: 10px;
+        }
+
+        .cloud2 {
+            width: 100px;
+            height: 50px;
+            top: 40%;
+            animation: moveCloud2 25s linear infinite;
+        }
+
+        .cloud2:before {
+            width: 60px;
+            height: 60px;
+            top: -30px;
+            left: 15px;
+        }
+
+        .cloud2:after {
+            width: 70px;
+            height: 50px;
+            top: -20px;
+            right: 15px;
+        }
+
+        .cloud3 {
+            width: 70px;
+            height: 35px;
+            top: 60%;
+            animation: moveCloud3 30s linear infinite;
+        }
+
+        .cloud3:before {
+            width: 45px;
+            height: 45px;
+            top: -22px;
+            left: 8px;
+        }
+
+        .cloud3:after {
+            width: 55px;
+            height: 35px;
+            top: -12px;
+            right: 8px;
+        }
+
+        @keyframes moveCloud1 {
+            0% { left: -100px; }
+            100% { left: 100%; }
+        }
+
+        @keyframes moveCloud2 {
+            0% { left: -120px; }
+            100% { left: 100%; }
+        }
+
+        @keyframes moveCloud3 {
+            0% { left: -90px; }
+            100% { left: 100%; }
         }
 
         .form-group {
@@ -311,13 +428,11 @@
                 <div class="token-text" id="tokenText"></div>
                 <div class="vibes-text" id="vibesText"></div>
             </div>
-            <div class="subtitle">Professional Solana Token Creation</div>
         </div>
 
         <div class="form-container">
             <div class="wallet-info">
-                <h4>🔗 Connect Your Phantom Wallet</h4>
-                <p>Connect your Phantom wallet to create tokens. Your private key stays secure in your wallet - we never see it!</p>
+                <h4>Connect Your Phantom Wallet</h4>
                 <button id="connectWallet" class="btn btn-secondary">
                     Connect Phantom Wallet
                 </button>
@@ -337,10 +452,6 @@
                     <input type="text" id="symbol" name="symbol" required placeholder="e.g., BAILEY" maxlength="10">
                 </div>
 
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea id="description" name="description" placeholder="Describe your token..."></textarea>
-                </div>
 
                 <div class="form-group">
                     <label for="quantity">Total Supply *</label>
@@ -376,6 +487,13 @@
                 <div id="resultContent"></div>
             </div>
         </div>
+    </div>
+
+    <!-- Pixelated clouds animation -->
+    <div class="clouds">
+        <div class="cloud cloud1"></div>
+        <div class="cloud cloud2"></div>
+        <div class="cloud cloud3"></div>
     </div>
 
     <!-- Load Solana Web3.js -->
