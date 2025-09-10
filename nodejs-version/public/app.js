@@ -1,3 +1,6 @@
+console.log('🚀 APP.JS LOADED - VERSION 7 - NEW CODE');
+console.log('🚀 Timestamp:', Date.now());
+
 let wallet = null;
 let walletAddress = null;
 
