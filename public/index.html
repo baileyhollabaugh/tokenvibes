@@ -17,7 +17,6 @@
             font-family: 'JetBrains Mono', monospace;
             background: #0a0a0a;
             background-image: 
-                radial-gradient(circle at 20% 80%, rgba(0, 255, 0, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
                 radial-gradient(circle at 40% 40%, rgba(0, 255, 255, 0.05) 0%, transparent 50%);
             min-height: 100vh;
@@ -132,6 +131,39 @@
             z-index: 1;
         }
 
+        .typing-text {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00;
+        }
+
+        .spray-text {
+            display: inline-block;
+            font-family: 'Cinzel', serif;
+            color: #ff00ff;
+            text-shadow: 0 0 20px #ff00ff;
+            animation: sprayPaint 3s ease-in-out infinite;
+        }
+
+        @keyframes sprayPaint {
+            0% { 
+                opacity: 0;
+                transform: scale(0.8) rotate(-5deg);
+                filter: blur(2px);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.1) rotate(2deg);
+                filter: blur(0px);
+            }
+            100% { 
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+                filter: blur(0px);
+            }
+        }
+
         .header p {
             font-family: 'Cinzel', serif;
             font-size: 1.2em;
@@ -139,6 +171,7 @@
             opacity: 0.9;
             position: relative;
             z-index: 1;
+            font-style: italic;
         }
 
         .form-container {
@@ -404,13 +437,16 @@
             color: #00ff00;
             cursor: pointer;
             z-index: 1000;
-            animation: trexBounce 2s ease-in-out infinite;
+            animation: trexRave 1s ease-in-out infinite;
             text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
         }
 
-        @keyframes trexBounce {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
+        @keyframes trexRave {
+            0% { transform: translateY(0px) rotate(0deg) scale(1); }
+            25% { transform: translateY(-15px) rotate(-10deg) scale(1.1); }
+            50% { transform: translateY(-5px) rotate(10deg) scale(0.9); }
+            75% { transform: translateY(-20px) rotate(-5deg) scale(1.05); }
+            100% { transform: translateY(0px) rotate(0deg) scale(1); }
         }
 
         .trex-mascot:hover {
@@ -431,14 +467,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🦖 TOKEN VIBES</h1>
-            <p>Cyberpunk Token Creation Terminal - Name, Symbol & Quantity</p>
+            <h1><span class="typing-text" id="typingText">TOKEN</span> <span class="spray-text">VIBES</span></h1>
+            <p>"make the token, take the ride"</p>
         </div>
 
         <div class="form-container">
             <div class="wallet-info">
                 <h4>🔗 CONNECT YOUR PHANTOM WALLET</h4>
-                <p>Token says: "Connect your wallet to start creating tokens! Your private key stays secure - even I can't see it!" 🦖</p>
+                <p>Connect your wallet to start creating tokens. Your private key stays secure in your wallet - we never see it!</p>
                 <button id="connectWallet" class="btn" style="margin-bottom: 20px;">
                     🦄 CONNECT PHANTOM WALLET
                 </button>
@@ -468,7 +504,7 @@
                     <input type="text" id="destinationAddress" name="destinationAddress" required 
                            placeholder="Enter Solana address to receive the tokens">
                     <p style="font-size: 12px; color: rgba(0, 255, 0, 0.7); margin-top: 5px; font-family: 'JetBrains Mono', monospace;">
-                        Token says: "This is where your shiny new tokens will be delivered!" 🦖
+                        This is where your newly created tokens will be sent
                     </p>
                 </div>
 
@@ -478,22 +514,22 @@
                 </div>
 
                 <button type="submit" class="btn" id="submitBtn">
-                    🦖 TOKEN SAYS: CREATE TOKEN!
+                    🪙 CREATE TOKEN
                 </button>
             </form>
 
             <div class="loading" id="loading">
                 <div class="spinner"></div>
-                <p>Token is working hard to create your token on Solana...</p>
+                <p>Creating your token on Solana...</p>
             </div>
 
             <div class="trex-loading" id="trexLoading" style="display: none;">
                 <div class="trex-icon">🦖</div>
-                <p>Token says: "ROAR! Creating your token now!"</p>
+                <p>Creating your token now!</p>
             </div>
 
             <div class="result" id="result">
-                <h3>🦖 TOKEN SAYS: SUCCESS! TOKEN CREATED!</h3>
+                <h3>✅ TOKEN CREATED SUCCESSFULLY!</h3>
                 <div id="resultContent"></div>
             </div>
         </div>
@@ -508,18 +544,40 @@
     <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
     
     <script>
+        // Typing animation for TOKEN text
+        function typeText(element, text, speed = 100) {
+            element.textContent = '';
+            let i = 0;
+            const timer = setInterval(() => {
+                if (i < text.length) {
+                    element.textContent += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, speed);
+        }
+
+        // Start typing animation when page loads
+        window.addEventListener('load', () => {
+            const typingElement = document.getElementById('typingText');
+            setTimeout(() => {
+                typeText(typingElement, 'TOKEN', 150);
+            }, 500);
+        });
+
         // Token the T-Rex interactions
         function trexRoar() {
             const trex = document.querySelector('.trex-mascot');
             trex.style.animation = 'trexRoar 0.5s ease-in-out';
             
-            // Show random Token messages
+            // Show random messages
             const messages = [
-                "Token says: ROAR! 🦖",
-                "Token says: I love creating tokens! 🦖",
-                "Token says: Don't make me angry! 🦖",
-                "Token says: Tokens are my favorite snack! 🦖",
-                "Token says: I'm the best T-Rex developer! 🦖"
+                "ROAR! 🦖",
+                "I love creating tokens! 🦖",
+                "Don't make me angry! 🦖",
+                "Tokens are my favorite snack! 🦖",
+                "I'm the best T-Rex developer! 🦖"
             ];
             
             const randomMessage = messages[Math.floor(Math.random() * messages.length)];
@@ -549,7 +607,7 @@
             }, 3000);
             
             setTimeout(() => {
-                trex.style.animation = 'trexBounce 2s ease-in-out infinite';
+                trex.style.animation = 'trexRave 1s ease-in-out infinite';
             }, 500);
         }
         
