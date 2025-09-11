@@ -53,8 +53,10 @@ class DatabaseLogger {
 
       if (error) {
         console.error('❌ Database logging error:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
       } else {
         console.log('✅ Token creation logged to database:', tokenData.name);
+        console.log('✅ Inserted data:', data);
       }
     } catch (error) {
       console.error('❌ Database logging failed:', error);
