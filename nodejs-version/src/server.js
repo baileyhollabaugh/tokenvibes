@@ -27,10 +27,13 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Rate limiting
+// Rate limiting with better Vercel support
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  trustProxy: true // Trust Vercel's proxy
 });
 app.use(limiter);
 
@@ -39,7 +42,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files with no-cache headers
-app.use(express.static(path.join(__dirname, 'public'), {
+app.use(express.static(path.join(__dirname, '../public'), {
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -59,7 +62,7 @@ app.get('/health', (req, res) => {
 
 // Serve frontend
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+  res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 // Error handling middleware
@@ -77,7 +80,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`�� Token Vibes Server running on port ${PORT}`);
+  console.log(`🚀 Token Vibes Server running on port ${PORT}`);
   console.log(`🌐 Frontend: http://localhost:${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
 });
