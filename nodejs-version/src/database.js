@@ -6,12 +6,16 @@ class DatabaseLogger {
     console.log('🔍 DEBUG: All environment variables:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
     
     // Supabase configuration
-    this.supabaseUrl = process.env.SUPABASE_URL;
+    this.supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     this.supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     console.log('🔍 DEBUG: Supabase URL:', this.supabaseUrl ? 'SET' : 'NOT SET');
     console.log('🔍 DEBUG: Supabase Key:', this.supabaseKey ? 'SET' : 'NOT SET');
     console.log('🔍 DEBUG: NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔍 DEBUG: SUPABASE_URL from env:', process.env.SUPABASE_URL);
+    console.log('🔍 DEBUG: NEXT_PUBLIC_SUPABASE_URL from env:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('🔍 DEBUG: SUPABASE_ANON_KEY from env:', process.env.SUPABASE_ANON_KEY);
+    console.log('🔍 DEBUG: NEXT_PUBLIC_SUPABASE_ANON_KEY from env:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
     if (!this.supabaseUrl || !this.supabaseKey) {
       console.warn('⚠️  Supabase credentials not found. Token logging will be disabled.');
