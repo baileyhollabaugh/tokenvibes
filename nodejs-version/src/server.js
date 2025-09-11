@@ -10,6 +10,9 @@ const tokenRoutes = require('./routes/tokenRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for rate limiting
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -36,7 +39,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static files with no-cache headers
-app.use(express.static(path.join(__dirname, '../public'), {
+app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders: (res, path) => {
     if (path.endsWith('.js')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -56,10 +59,8 @@ app.get('/health', (req, res) => {
 
 // Serve frontend
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
-
-
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -76,7 +77,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Token Vibes Server running on port ${PORT}`);
+  console.log(`�� Token Vibes Server running on port ${PORT}`);
   console.log(`🌐 Frontend: http://localhost:${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
 });
