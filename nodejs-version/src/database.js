@@ -3,6 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 class DatabaseLogger {
   constructor() {
     console.log('🔍 DATABASE.JS CONSTRUCTOR CALLED');
+    console.log('🔍 DEBUG: All environment variables:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
     
     // Supabase configuration
     this.supabaseUrl = process.env.SUPABASE_URL;
@@ -10,6 +11,7 @@ class DatabaseLogger {
     
     console.log('🔍 DEBUG: Supabase URL:', this.supabaseUrl ? 'SET' : 'NOT SET');
     console.log('🔍 DEBUG: Supabase Key:', this.supabaseKey ? 'SET' : 'NOT SET');
+    console.log('🔍 DEBUG: NODE_ENV:', process.env.NODE_ENV);
     
     if (!this.supabaseUrl || !this.supabaseKey) {
       console.warn('⚠️  Supabase credentials not found. Token logging will be disabled.');
