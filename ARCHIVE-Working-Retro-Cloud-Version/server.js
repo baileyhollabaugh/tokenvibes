@@ -5,13 +5,10 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
-const tokenRoutes = require('./routes/tokenRoutes');
+const tokenRoutes = require('./src/routes/tokenRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// Trust proxy for rate limiting - Vercel requires this exact setting
-app.set('trust proxy', true);
 
 // Security middleware
 app.use(helmet({
@@ -27,13 +24,10 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Rate limiting with better Vercel support
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  trustProxy: true // Trust Vercel's proxy
+  max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
@@ -41,16 +35,8 @@ app.use(limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files with no-cache headers
-app.use(express.static(path.join(__dirname, '../public'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-    }
-  }
-}));
+// Static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/api/tokens', tokenRoutes);
@@ -62,7 +48,7 @@ app.get('/health', (req, res) => {
 
 // Serve frontend
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
 // Error handling middleware

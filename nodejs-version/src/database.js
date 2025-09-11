@@ -5,9 +5,9 @@ class DatabaseLogger {
     console.log('🔍 DATABASE.JS CONSTRUCTOR CALLED');
     console.log('🔍 DEBUG: All environment variables:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
     
-    // Supabase configuration
-    this.supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    this.supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Supabase configuration - Vercel uses NEXT_PUBLIC_ prefix
+    this.supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    this.supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     
     console.log('🔍 DEBUG: Supabase URL:', this.supabaseUrl ? 'SET' : 'NOT SET');
     console.log('🔍 DEBUG: Supabase Key:', this.supabaseKey ? 'SET' : 'NOT SET');
@@ -18,14 +18,24 @@ class DatabaseLogger {
     console.log('🔍 DEBUG: NEXT_PUBLIC_SUPABASE_ANON_KEY from env:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
     if (!this.supabaseUrl || !this.supabaseKey) {
-      console.warn('⚠️  Supabase credentials not found. Token logging will be disabled.');
+      console.error('❌ CRITICAL: Supabase credentials not found!');
+      console.error('❌ Missing URL:', !this.supabaseUrl);
+      console.error('❌ Missing Key:', !this.supabaseKey);
+      console.error('❌ Available env vars:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
       this.enabled = false;
       return;
     }
     
-    this.supabase = createClient(this.supabaseUrl, this.supabaseKey);
-    this.enabled = true;
-    console.log('✅ Supabase database logging enabled');
+    try {
+      this.supabase = createClient(this.supabaseUrl, this.supabaseKey);
+      this.enabled = true;
+      console.log('✅ Supabase database logging enabled');
+      console.log('✅ Supabase URL:', this.supabaseUrl.substring(0, 30) + '...');
+      console.log('✅ Supabase Key:', this.supabaseKey.substring(0, 20) + '...');
+    } catch (error) {
+      console.error('❌ Failed to create Supabase client:', error);
+      this.enabled = false;
+    }
   }
 
   async logTokenCreation(tokenData) {
