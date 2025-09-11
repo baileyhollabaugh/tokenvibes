@@ -7,7 +7,7 @@ class DatabaseLogger {
     
     // Supabase configuration
     this.supabaseUrl = process.env.SUPABASE_URL;
-    this.supabaseKey = process.env.SUPABASE_ANON_KEY;
+    this.supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     console.log('🔍 DEBUG: Supabase URL:', this.supabaseUrl ? 'SET' : 'NOT SET');
     console.log('🔍 DEBUG: Supabase Key:', this.supabaseKey ? 'SET' : 'NOT SET');
@@ -26,6 +26,8 @@ class DatabaseLogger {
 
   async logTokenCreation(tokenData) {
     console.log('🔍 DEBUG: logTokenCreation called with:', tokenData);
+    console.log('🔍 DEBUG: Database enabled:', this.enabled);
+    console.log('🔍 DEBUG: Supabase client exists:', !!this.supabase);
     
     if (!this.enabled) {
       console.log('📝 Token creation (not logged):', tokenData.name, tokenData.symbol);
@@ -34,12 +36,15 @@ class DatabaseLogger {
 
     try {
       const { data, error } = await this.supabase
-        .from('token_logs')
+        .from('token_creations')
         .insert([
           {
-            name: tokenData.name,
-            symbol: tokenData.symbol,
-            quantity: tokenData.quantity,
+            token_name: tokenData.name,           // FIXED: was 'name'
+            token_symbol: tokenData.symbol,       // FIXED: was 'symbol'
+            token_quantity: tokenData.quantity,   // FIXED: was 'quantity'
+            token_decimals: tokenData.decimals || 9,
+            mint_address: tokenData.mintAddress,
+            destination_address: tokenData.destinationAddress,
             creator_wallet: tokenData.creatorWallet,
             created_at: new Date().toISOString(),
             success: true
@@ -61,13 +66,16 @@ class DatabaseLogger {
 
     try {
       const { data, error } = await this.supabase
-        .from('token_logs')
+        .from('token_creations')
         .insert([
           {
-            name: tokenData.name || 'Unknown',
-            symbol: tokenData.symbol || 'Unknown',
-            quantity: tokenData.quantity || 0,
-            creator_wallet: tokenData.creatorWallet || 'Unknown',
+            token_name: tokenData.name || 'Unknown',           // FIXED: was 'name'
+            token_symbol: tokenData.symbol || 'Unknown',       // FIXED: was 'symbol'
+            token_quantity: tokenData.quantity || 0,           // FIXED: was 'quantity'
+            token_decimals: tokenData.decimals || 9,
+            mint_address: tokenData.mintAddress,
+            destination_address: tokenData.destinationAddress,
+            creator_wallet: tokenData.creatorWallet,
             created_at: new Date().toISOString(),
             success: false,
             error_message: errorMessage
@@ -89,7 +97,7 @@ class DatabaseLogger {
 
     try {
       const { data, error } = await this.supabase
-        .from('token_logs')
+        .from('token_creations')
         .select('*')
         .order('created_at', { ascending: false });
 

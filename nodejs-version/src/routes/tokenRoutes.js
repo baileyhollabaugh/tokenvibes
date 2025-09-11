@@ -36,12 +36,17 @@ router.post('/create', async (req, res) => {
 
     // Log successful token creation to database
     console.log('🔍 DEBUG: About to log token creation to database...');
-    await dbLogger.logTokenCreation({
-      ...tokenData,
-      mintAddress: result.mintAddress,
-      creatorWallet: walletAddress
-    });
-    console.log('🔍 DEBUG: Token creation logging completed');
+    try {
+      await dbLogger.logTokenCreation({
+        ...tokenData,
+        mintAddress: result.mintAddress,
+        creatorWallet: walletAddress
+      });
+      console.log('🔍 DEBUG: Token creation logging completed successfully');
+    } catch (dbError) {
+      console.error('❌ Database logging failed:', dbError);
+      // Don't fail the request if logging fails
+    }
 
     res.json({
       success: true,
