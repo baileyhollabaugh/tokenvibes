@@ -1,83 +1,107 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
 
-const tokenRoutes = require('./routes/tokenRoutes');
+class DatabaseLogger {
+  constructor() {
+    console.log('🔍 DATABASE.JS CONSTRUCTOR CALLED');
+    
+    // Supabase configuration
+    this.supabaseUrl = process.env.SUPABASE_URL;
+    this.supabaseKey = process.env.SUPABASE_ANON_KEY;
+    
+    console.log('🔍 DEBUG: Supabase URL:', this.supabaseUrl ? 'SET' : 'NOT SET');
+    console.log('🔍 DEBUG: Supabase Key:', this.supabaseKey ? 'SET' : 'NOT SET');
+    
+    if (!this.supabaseUrl || !this.supabaseKey) {
+      console.warn('⚠️  Supabase credentials not found. Token logging will be disabled.');
+      this.enabled = false;
+      return;
+    }
+    
+    this.supabase = createClient(this.supabaseUrl, this.supabaseKey);
+    this.enabled = true;
+    console.log('✅ Supabase database logging enabled');
+  }
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+  async logTokenCreation(tokenData) {
+    console.log('🔍 DEBUG: logTokenCreation called with:', tokenData);
+    
+    if (!this.enabled) {
+      console.log('📝 Token creation (not logged):', tokenData.name, tokenData.symbol);
+      return;
+    }
 
-// Trust proxy for rate limiting
-app.set('trust proxy', 1);
+    try {
+      const { data, error } = await this.supabase
+        .from('token_logs')
+        .insert([
+          {
+            name: tokenData.name,
+            symbol: tokenData.symbol,
+            quantity: tokenData.quantity,
+            creator_wallet: tokenData.creatorWallet,
+            created_at: new Date().toISOString(),
+            success: true
+          }
+        ]);
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.mainnet-beta.solana.com", "https://solana-mainnet.g.alchemy.com"],
-    },
-  },
-}));
-app.use(cors());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-});
-app.use(limiter);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Static files with no-cache headers
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.js')) {
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
+      if (error) {
+        console.error('❌ Database logging error:', error);
+      } else {
+        console.log('✅ Token creation logged to database:', tokenData.name);
+      }
+    } catch (error) {
+      console.error('❌ Database logging failed:', error);
     }
   }
-}));
 
-// Routes
-app.use('/api/tokens', tokenRoutes);
+  async logTokenError(tokenData, errorMessage) {
+    if (!this.enabled) return;
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+    try {
+      const { data, error } = await this.supabase
+        .from('token_logs')
+        .insert([
+          {
+            name: tokenData.name || 'Unknown',
+            symbol: tokenData.symbol || 'Unknown',
+            quantity: tokenData.quantity || 0,
+            creator_wallet: tokenData.creatorWallet || 'Unknown',
+            created_at: new Date().toISOString(),
+            success: false,
+            error_message: errorMessage
+          }
+        ]);
 
-// Serve frontend
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
-});
+      if (error) {
+        console.error('❌ Error logging failed:', error);
+      } else {
+        console.log('✅ Token error logged to database');
+      }
+    } catch (error) {
+      console.error('❌ Error logging failed:', error);
+    }
+  }
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
-});
+  async getTokenStats() {
+    if (!this.enabled) return null;
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+    try {
+      const { data, error } = await this.supabase
+        .from('token_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-app.listen(PORT, () => {
-  console.log(`�� Token Vibes Server running on port ${PORT}`);
-  console.log(`🌐 Frontend: http://localhost:${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api`);
-});
+      if (error) {
+        console.error('❌ Failed to fetch token stats:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to fetch token stats:', error);
+      return null;
+    }
+  }
+}
+
+module.exports = DatabaseLogger;
