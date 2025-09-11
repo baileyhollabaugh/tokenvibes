@@ -5,10 +5,12 @@ const { PublicKey } = require('@solana/web3.js');
 
 const router = express.Router();
 const tokenCreator = new TokenCreator();
-const dbLogger = new DatabaseLogger();
 
 // Create token endpoint
 router.post('/create', async (req, res) => {
+  // Create database logger instance for this request
+  const dbLogger = new DatabaseLogger();
+  
   try {
     const { name, symbol, description, quantity, destinationAddress, walletAddress } = req.body;
 
@@ -58,13 +60,17 @@ router.post('/create', async (req, res) => {
     console.error('Token creation error:', error);
     
     // Log failed token creation to database
-    await dbLogger.logTokenError({
-      name: req.body.name,
-      symbol: req.body.symbol,
-      quantity: req.body.quantity,
-      destinationAddress: req.body.destinationAddress,
-      creatorWallet: req.body.walletAddress
-    }, error.message);
+    try {
+      await dbLogger.logTokenError({
+        name: req.body.name,
+        symbol: req.body.symbol,
+        quantity: req.body.quantity,
+        destinationAddress: req.body.destinationAddress,
+        creatorWallet: req.body.walletAddress
+      }, error.message);
+    } catch (dbError) {
+      console.error('❌ Error logging failed:', dbError);
+    }
 
     res.status(500).json({
       success: false,
@@ -80,6 +86,8 @@ router.get('/info/:mintAddress', (req, res) => {
 
 // Get token statistics endpoint
 router.get('/stats', async (req, res) => {
+  const dbLogger = new DatabaseLogger();
+  
   try {
     const stats = await dbLogger.getTokenStats();
     
