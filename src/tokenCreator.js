@@ -17,12 +17,11 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
-const {
-  createCreateMetadataAccountV3Instruction,
-  createCreateMetadataAccountV2Instruction,
-} = require('@metaplex-foundation/mpl-token-metadata');
-
-const { MPL_TOKEN_METADATA_PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID } = require('@metaplex-foundation/mpl-token-metadata');
+// Metaplex Umi imports following official templates
+const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
+const { mplTokenMetadata } = require('@metaplex-foundation/mpl-token-metadata');
+const { createMetadataAccountV3, findMetadataPda } = require('@metaplex-foundation/mpl-token-metadata');
+const { publicKey, some, none } = require('@metaplex-foundation/umi');
 
 class TokenCreator {
   constructor() {
@@ -30,13 +29,41 @@ class TokenCreator {
       process.env.SOLANA_RPC_URL || 'https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG',
       'confirmed'
     );
+    
+    // Setup Umi following official Metaplex templates
+    this.umi = createUmi(this.connection.rpcEndpoint);
+    this.umi.use(mplTokenMetadata());
   }
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Preparing token creation with Metaplex metadata...');
+      console.log('🚀 Preparing token creation transaction...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
+
+      // Create Metaplex-compliant metadata for block explorer display
+      const metadata = {
+        name: tokenData.name,
+        symbol: tokenData.symbol,
+        description: `${tokenData.name} (${tokenData.symbol}) - Total Supply: ${tokenData.quantity.toLocaleString()}`,
+        image: "", // No image for MVP
+        external_url: "",
+        attributes: [
+          {
+            trait_type: "Total Supply",
+            value: tokenData.quantity.toString()
+          }
+        ],
+        properties: {
+          files: [],
+          category: "token",
+          creators: []
+        }
+      };
+
+      // For now, return a placeholder metadata URI
+      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
+      console.log('✅ Metadata URI prepared:', metadataUri);
 
       // Create mint keypair
       const mintKeypair = Keypair.generate();
@@ -84,62 +111,55 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata account PDA
-      const [metadataPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('metadata'),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-          mintKeypair.publicKey.toBuffer(),
-        ],
-        TOKEN_METADATA_PROGRAM_ID
-      );
-
-      console.log('📝 Metadata PDA:', metadataPDA.toString());
-
-      // Create metadata JSON
-      const metadata = {
-        name: tokenData.name,
-        symbol: tokenData.symbol,
-        description: tokenData.description || '',
-        image: tokenData.imageUri || '',
-        external_url: '',
-        attributes: [],
-        properties: {
-          files: [],
-          category: 'image',
-          creators: []
-        }
-      };
-
-      // For now, use a placeholder metadata URI
-      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
-      console.log('✅ Metadata URI prepared:', metadataUri);
-
-      // Create metadata account instruction
-      const createMetadataInstruction = createCreateMetadataAccountV3Instruction(
-        {
-          metadata: metadataPDA,
-          mint: mintKeypair.publicKey,
-          mintAuthority: walletPublicKey,
-          payer: walletPublicKey,
-          updateAuthority: walletPublicKey,
+      // Create metadata account using official Metaplex Umi pattern
+      console.log('📝 Creating metadata account using official Metaplex Umi...');
+      
+      // Find metadata PDA using Umi
+      const metadataPda = findMetadataPda(this.umi, { 
+        mint: publicKey(mintKeypair.publicKey.toString()) 
+      });
+      
+      console.log('✅ Metadata account:', metadataPda.toString());
+      
+      // Create metadata instruction using official Umi createMetadataAccountV3
+      const createMetadataInstruction = createMetadataAccountV3(this.umi, {
+        metadata: metadataPda,
+        mint: publicKey(mintKeypair.publicKey.toString()),
+        mintAuthority: publicKey(walletPublicKey.toString()),
+        payer: publicKey(walletPublicKey.toString()),
+        updateAuthority: publicKey(walletPublicKey.toString()),
+        data: {
+          name: metadata.name,
+          symbol: metadata.symbol,
+          uri: metadataUri,
+          sellerFeeBasisPoints: 0,
+          creators: none(),
+          collection: none(),
+          uses: none(),
         },
-        {
-          createMetadataAccountArgsV3: {
-            data: {
-              name: tokenData.name,
-              symbol: tokenData.symbol,
-              uri: metadataUri,
-              sellerFeeBasisPoints: 0,
-              creators: null,
-              collection: null,
-              uses: null,
-            },
-            isMutable: true,
-            collectionDetails: null,
-          },
-        }
-      );
+        isMutable: true,
+        collectionDetails: none(),
+      });
+      
+      console.log('✅ Official Metaplex metadata instruction created');
+      
+      // Convert Umi TransactionBuilder to Solana TransactionInstruction
+      // The Umi instruction is a TransactionBuilder with items array
+      console.log('Umi instruction structure:', createMetadataInstruction);
+      
+      // Extract the instruction from the TransactionBuilder
+      const umiInstruction = createMetadataInstruction.items[0].instruction;
+      console.log('Umi instruction data:', umiInstruction);
+      
+      const metadataInstruction = new TransactionInstruction({
+        keys: umiInstruction.keys.map(key => ({
+          pubkey: new PublicKey(key.pubkey),
+          isSigner: key.isSigner,
+          isWritable: key.isWritable,
+        })),
+        programId: new PublicKey(umiInstruction.programId),
+        data: Buffer.from(umiInstruction.data),
+      });
 
       // Create transaction
       const transaction = new Transaction();
@@ -147,30 +167,41 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
-      transaction.add(createMetadataInstruction);
+      transaction.add(metadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = walletPublicKey;
 
-      console.log('✅ Transaction prepared for signing with metadata');
+      console.log('✅ Transaction prepared for signing');
+      console.log('Transaction instructions count:', transaction.instructions.length);
+
+      // Serialize transaction with error handling
+      let serializedTransaction;
+      try {
+        serializedTransaction = transaction.serialize({ requireAllSignatures: false });
+        console.log('✅ Transaction serialized successfully, length:', serializedTransaction.length);
+      } catch (serializeError) {
+        console.error('❌ Transaction serialization failed:', serializeError);
+        throw new Error(`Transaction serialization failed: ${serializeError.message}`);
+      }
 
       // Return the transaction for frontend signing
       return {
         success: true,
+        mintAddress: mintKeypair.publicKey.toString(),
+        metadataAddress: metadataPda.toString(),
         name: tokenData.name,
         symbol: tokenData.symbol,
-        mintAddress: mintKeypair.publicKey.toString(),
-        metadataAddress: metadataPDA.toString(),
-        metadataUri: metadataUri,
-        metadata: metadata,
-        mintKeypair: Array.from(mintKeypair.secretKey),
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
         destinationTokenAccount: destinationTokenAccount.toString(),
-        transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
+        metadata: metadata,
+        metadataUri: metadataUri,
+        mintKeypair: Array.from(mintKeypair.secretKey),
+        transaction: serializedTransaction.toString('base64')
       };
 
     } catch (error) {
