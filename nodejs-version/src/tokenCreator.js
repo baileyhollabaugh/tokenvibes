@@ -113,6 +113,8 @@ class TokenCreator {
       // Return the transaction for frontend signing
       return {
         success: true,
+        name: tokenData.name,
+        symbol: tokenData.symbol,
         mintAddress: mintKeypair.publicKey.toString(),
         metadataUri: metadataUri,
         metadata: metadata,

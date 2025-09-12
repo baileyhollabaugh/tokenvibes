@@ -116,10 +116,12 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     }
 
     console.log('✅ Token transaction prepared on backend:', data.data);
+    console.log('🔍 DEBUG: Full response data:', JSON.stringify(data, null, 2));
+    console.log('🔍 DEBUG: Name from response:', data.data.name);
+    console.log('🔍 DEBUG: Symbol from response:', data.data.symbol);
 
     // Sign and submit transaction
-    const transactionBytes = Uint8Array.from(atob(data.data.transaction), c => c.charCodeAt(0));
-    const transaction = solanaWeb3.Transaction.from(transactionBytes);
+    const transaction = solanaWeb3.Transaction.from(Buffer.from(data.data.transaction, 'base64'));
     
     // Create the mint keypair from the secret key
     const mintKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(data.data.mintKeypair));
