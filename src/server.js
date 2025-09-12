@@ -6,23 +6,22 @@ const path = require('path');
 require('dotenv').config();
 
 const tokenRoutes = require('./routes/tokenRoutes');
-const DatabaseLogger = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy for Vercel - Fixed
-app.set('trust proxy', 1);
+// Trust proxy for rate limiting - Vercel requires this exact setting
+app.set('trust proxy', true);
 
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://unpkg.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://api.mainnet-beta.solana.com", "https://solana-mainnet.g.alchemy.com"],
+      connectSrc: ["'self'", "https://api.mainnet-beta.solana.com", "https://solana-mainnet.g.alchemy.com", "wss://solana-mainnet.g.alchemy.com"],
     },
   },
 }));
@@ -51,28 +50,6 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Database health check
-app.get('/health/db', async (req, res) => {
-  try {
-    const dbLogger = new DatabaseLogger();
-    const stats = await dbLogger.getTokenStats();
-    const isConnected = stats !== null;
-    
-    res.json({ 
-      status: isConnected ? 'OK' : 'ERROR', 
-      database: isConnected ? 'Connected' : 'Disconnected',
-      enabled: dbLogger.enabled,
-      timestamp: new Date().toISOString() 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      database: 'Error',
-      error: error.message,
-      timestamp: new Date().toISOString() 
-    });
-  }
-});
 
 // Serve frontend
 app.get('/', (req, res) => {
@@ -98,15 +75,4 @@ app.listen(PORT, async () => {
   console.log(`🌐 Frontend: http://localhost:${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
   
-  // Test database connection on startup
-  try {
-    const dbLogger = new DatabaseLogger();
-    if (dbLogger.enabled) {
-      console.log('✅ Database connection successful');
-    } else {
-      console.log('❌ Database connection failed');
-    }
-  } catch (error) {
-    console.log('❌ Database connection error:', error.message);
-  }
 });
