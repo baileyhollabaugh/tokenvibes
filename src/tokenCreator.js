@@ -17,6 +17,13 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
+const {
+  createCreateMetadataAccountV3Instruction,
+  createCreateMetadataAccountV2Instruction,
+} = require('@metaplex-foundation/mpl-token-metadata');
+
+const { PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID } = require('@metaplex-foundation/mpl-token-metadata');
+
 class TokenCreator {
   constructor() {
     this.connection = new Connection(
@@ -27,28 +34,9 @@ class TokenCreator {
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Preparing token creation transaction...');
+      console.log('🚀 Preparing token creation with Metaplex metadata...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
-
-      // Create metadata JSON
-      const metadata = {
-        name: tokenData.name,
-        symbol: tokenData.symbol,
-        description: tokenData.description || '',
-        image: tokenData.imageUri || '',
-        external_url: '',
-        attributes: [],
-        properties: {
-          files: [],
-          category: 'image',
-          creators: []
-        }
-      };
-
-      // For now, return a placeholder metadata URI
-      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
-      console.log('✅ Metadata URI prepared:', metadataUri);
 
       // Create mint keypair
       const mintKeypair = Keypair.generate();
@@ -96,24 +84,85 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
+      // Create metadata account PDA
+      const [metadataPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          mintKeypair.publicKey.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+
+      console.log('📝 Metadata PDA:', metadataPDA.toString());
+
+      // Create metadata JSON
+      const metadata = {
+        name: tokenData.name,
+        symbol: tokenData.symbol,
+        description: tokenData.description || '',
+        image: tokenData.imageUri || '',
+        external_url: '',
+        attributes: [],
+        properties: {
+          files: [],
+          category: 'image',
+          creators: []
+        }
+      };
+
+      // For now, use a placeholder metadata URI
+      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
+      console.log('✅ Metadata URI prepared:', metadataUri);
+
+      // Create metadata account instruction
+      const createMetadataInstruction = createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataPDA,
+          mint: mintKeypair.publicKey,
+          mintAuthority: walletPublicKey,
+          payer: walletPublicKey,
+          updateAuthority: walletPublicKey,
+        },
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name: tokenData.name,
+              symbol: tokenData.symbol,
+              uri: metadataUri,
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        }
+      );
+
       // Create transaction
       const transaction = new Transaction();
       transaction.add(createAccountInstruction);
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
+      transaction.add(createMetadataInstruction);
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = walletPublicKey;
 
-      console.log('✅ Transaction prepared for signing');
+      console.log('✅ Transaction prepared for signing with metadata');
 
       // Return the transaction for frontend signing
       return {
         success: true,
+        name: tokenData.name,
+        symbol: tokenData.symbol,
         mintAddress: mintKeypair.publicKey.toString(),
+        metadataAddress: metadataPDA.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
         mintKeypair: Array.from(mintKeypair.secretKey),
