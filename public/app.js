@@ -66,6 +66,9 @@ window.addEventListener('load', async () => {
   }
 });
 
+// Prevent duplicate submissions
+let isSubmitting = false;
+
 document.getElementById('tokenForm').addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -73,6 +76,14 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     alert('Please connect your Phantom wallet first!');
     return;
   }
+
+  // Prevent duplicate submissions
+  if (isSubmitting) {
+    console.log('⚠️ Form submission already in progress, ignoring duplicate');
+    return;
+  }
+
+  isSubmitting = true;
 
   const submitBtn = document.getElementById('submitBtn');
   const loading = document.getElementById('loading');
@@ -97,7 +108,8 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
       quantity: parseInt(quantity),
       decimals: 9,
       destinationAddress,
-      walletAddress
+      walletAddress,
+      transactionId: Date.now() + Math.random() // Unique transaction ID
     };
 
     // Create token on backend
@@ -228,6 +240,7 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
   } finally {
     result.style.display = 'block';
     submitBtn.disabled = false;
+    isSubmitting = false; // Reset submission flag
     loading.style.display = 'none';
     document.getElementById('trexLoading').style.display = 'none';
   }
