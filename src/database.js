@@ -64,7 +64,7 @@ class DatabaseLogger {
             token_name: tokenData.name,           // FIXED: was 'name'
             token_symbol: tokenData.symbol,       // FIXED: was 'symbol'
             token_quantity: tokenData.quantity,   // FIXED: was 'quantity'
-            token_decima: tokenData.decimals || 9, // Note: keeping the typo from your table schema
+            token_decimals: tokenData.decimals || 9,
             mint_address: tokenData.mintAddress,
             destination_address: tokenData.destinationAddress,
             creator_wallet: tokenData.creatorWallet,
@@ -96,7 +96,7 @@ class DatabaseLogger {
             token_name: tokenData.name || 'Unknown',           // FIXED: was 'name'
             token_symbol: tokenData.symbol || 'Unknown',       // FIXED: was 'symbol'
             token_quantity: tokenData.quantity || 0,           // FIXED: was 'quantity'
-            token_decima: tokenData.decimals || 9, // Note: keeping the typo from your table schema
+            token_decimals: tokenData.decimals || 9,
             mint_address: tokenData.mintAddress,
             destination_address: tokenData.destinationAddress,
             creator_wallet: tokenData.creatorWallet,
