@@ -70,9 +70,14 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, async () => {
-  console.log(`🚀 Token Vibes Server running on port ${PORT}`);
-  console.log(`🌐 Frontend: http://localhost:${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api`);
-  
-});
+// Export the Express app for Vercel
+module.exports = app;
+
+// Only listen on port for local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Token Vibes Server running on port ${PORT}`);
+    console.log(`🌐 Frontend: http://localhost:${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}/api`);
+  });
+}
