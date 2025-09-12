@@ -4,10 +4,18 @@ class DatabaseLogger {
   constructor() {
     console.log('🔍 DATABASE.JS CONSTRUCTOR CALLED');
     console.log('🔍 DEBUG: All environment variables:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
+    console.log('🔍 DEBUG: NODE_ENV:', process.env.NODE_ENV);
+    console.log('🔍 DEBUG: VERCEL:', process.env.VERCEL);
+    console.log('🔍 DEBUG: All env vars with SUPABASE:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
     
     // Supabase configuration - Vercel uses NEXT_PUBLIC_ prefix
     this.supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     this.supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    
+    console.log('🔍 DEBUG: NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('🔍 DEBUG: NEXT_PUBLIC_SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+    console.log('🔍 DEBUG: SUPABASE_URL:', process.env.SUPABASE_URL);
+    console.log('🔍 DEBUG: SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY);
     
     console.log('🔍 DEBUG: Supabase URL:', this.supabaseUrl ? 'SET' : 'NOT SET');
     console.log('🔍 DEBUG: Supabase Key:', this.supabaseKey ? 'SET' : 'NOT SET');
