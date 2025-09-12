@@ -152,6 +152,27 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
           throw confirmError;
         }
       }
+
+      // Update database with transaction signature
+      if (data.data.databaseId && signature) {
+        try {
+          console.log('📝 Updating database with transaction signature...');
+          await fetch('/api/tokens/update-signature', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              databaseId: data.data.databaseId,
+              transactionSignature: signature
+            })
+          });
+          console.log('✅ Transaction signature updated in database');
+        } catch (dbError) {
+          console.error('⚠️ Failed to update database with signature:', dbError);
+          // Don't fail the whole process if database update fails
+        }
+      }
     } catch (error) {
       console.error('❌ Transaction failed:', error);
       throw error;

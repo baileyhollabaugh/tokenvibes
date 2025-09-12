@@ -6,6 +6,7 @@ const path = require('path');
 require('dotenv').config();
 
 const tokenRoutes = require('./src/routes/tokenRoutes');
+const DatabaseLogger = require('./src/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,6 +47,29 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Database health check
+app.get('/health/db', async (req, res) => {
+  try {
+    const dbLogger = new DatabaseLogger();
+    const stats = await dbLogger.getTokenStats();
+    const isConnected = stats !== null;
+    
+    res.json({ 
+      status: isConnected ? 'OK' : 'ERROR', 
+      database: isConnected ? 'Connected' : 'Disconnected',
+      enabled: dbLogger.enabled,
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'ERROR', 
+      database: 'Error',
+      error: error.message,
+      timestamp: new Date().toISOString() 
+    });
+  }
+});
+
 // Serve frontend
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
@@ -65,8 +89,20 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Token Vibes Server running on port ${PORT}`);
   console.log(`🌐 Frontend: http://localhost:${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
+  
+  // Test database connection on startup
+  try {
+    const dbLogger = new DatabaseLogger();
+    if (dbLogger.enabled) {
+      console.log('✅ Database connection successful');
+    } else {
+      console.log('❌ Database connection failed');
+    }
+  } catch (error) {
+    console.log('❌ Database connection error:', error.message);
+  }
 });

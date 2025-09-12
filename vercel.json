@@ -16,6 +16,8 @@
     "NODE_ENV": "production",
     "SOLANA_RPC_URL": "https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG",
     "IRYS_URL": "https://node1.irys.xyz",
-    "PORT": "3000"
+    "PORT": "3000",
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key"
   }
 }
