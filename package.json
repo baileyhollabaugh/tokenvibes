@@ -1,4 +1,4 @@
-{
+ {
   "name": "token-vibes-nodejs",
   "version": "1.0.0",
   "description": "Professional Solana token creation platform with Metaplex metadata support",
@@ -10,7 +10,7 @@
     "test": "jest"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
