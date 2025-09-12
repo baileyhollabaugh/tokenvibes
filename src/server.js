@@ -5,8 +5,8 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
-const tokenRoutes = require('./src/routes/tokenRoutes');
-const DatabaseLogger = require('./src/database');
+const tokenRoutes = require('./routes/tokenRoutes');
+const DatabaseLogger = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
