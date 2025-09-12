@@ -92,6 +92,194 @@ router.get('/info/:mintAddress', (req, res) => {
   res.status(501).json({ message: 'Not Implemented' });
 });
 
+// Get user's SPL tokens from Solana mainnet
+router.get('/user-tokens/:walletAddress', async (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Wallet address is required'
+      });
+    }
+
+    console.log('🔍 Fetching tokens for wallet:', walletAddress);
+    
+    // Connect to Solana mainnet
+    const { Connection, PublicKey } = require('@solana/web3.js');
+    const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+    const publicKey = new PublicKey(walletAddress);
+    
+    // Get all token accounts for this wallet
+    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(publicKey, {
+      programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA')
+    });
+    
+    console.log('🔍 Found token accounts:', tokenAccounts.value.length);
+    
+    const userTokens = [];
+    
+    for (const accountInfo of tokenAccounts.value) {
+      const tokenAccount = accountInfo.account.data.parsed.info;
+      const tokenAmount = tokenAccount.tokenAmount;
+      
+      // Only include tokens with non-zero balance
+      if (tokenAmount.uiAmount > 0) {
+        userTokens.push({
+          mint: tokenAccount.mint,
+          name: 'Token', // Will be enhanced with metadata later
+          symbol: 'TKN',
+          balance: tokenAmount.uiAmount,
+          decimals: tokenAmount.decimals,
+          tokenAccount: accountInfo.pubkey.toString()
+        });
+      }
+    }
+    
+    console.log('✅ Loaded user tokens:', userTokens.length);
+
+    res.json({
+      success: true,
+      data: userTokens
+    });
+
+  } catch (error) {
+    console.error('Get user tokens error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Deploy sale contract
+router.post('/deploy-sale', async (req, res) => {
+  try {
+    const { tokenMint, quantity, pricePerToken, sellerWallet } = req.body;
+
+    if (!tokenMint || !quantity || !pricePerToken || !sellerWallet) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: tokenMint, quantity, pricePerToken, sellerWallet'
+      });
+    }
+
+    // For now, simulate contract deployment
+    // In production, this would deploy an actual Anchor smart contract
+    const contractAddress = 'ABC123' + Math.random().toString(36).substring(2, 15);
+    
+    console.log('🚀 Simulating sale contract deployment...');
+    console.log('Token:', tokenMint);
+    console.log('Quantity:', quantity);
+    console.log('Price:', pricePerToken);
+    console.log('Seller:', sellerWallet);
+
+    res.json({
+      success: true,
+      data: {
+        contractAddress,
+        tokenMint,
+        quantity: parseInt(quantity),
+        pricePerToken: parseFloat(pricePerToken),
+        sellerWallet,
+        totalValue: parseInt(quantity) * parseFloat(pricePerToken),
+        status: 'active'
+      }
+    });
+
+  } catch (error) {
+    console.error('Deploy sale error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Get contract info for buying
+router.get('/contract-info/:contractAddress', async (req, res) => {
+  try {
+    const { contractAddress } = req.params;
+
+    if (!contractAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contract address is required'
+      });
+    }
+
+    // For now, return mock contract data
+    // In production, this would fetch from the Solana blockchain
+    const mockContractInfo = {
+      contractAddress,
+      tokenName: 'GROKCOIN',
+      tokenSymbol: 'GROK',
+      tokenMint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+      pricePerToken: 1.00,
+      availableTokens: 100,
+      totalTokens: 100,
+      sellerWallet: 'ABC123...',
+      status: 'active'
+    };
+
+    res.json({
+      success: true,
+      data: mockContractInfo
+    });
+
+  } catch (error) {
+    console.error('Get contract info error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Buy tokens
+router.post('/buy-tokens', async (req, res) => {
+  try {
+    const { contractAddress, quantity, buyerWallet } = req.body;
+
+    if (!contractAddress || !quantity || !buyerWallet) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: contractAddress, quantity, buyerWallet'
+      });
+    }
+
+    // For now, simulate token purchase
+    // In production, this would interact with the smart contract
+    const pricePerToken = 1.00; // This would come from the contract
+    const totalCost = parseInt(quantity) * pricePerToken;
+
+    console.log('🛒 Simulating token purchase...');
+    console.log('Contract:', contractAddress);
+    console.log('Quantity:', quantity);
+    console.log('Buyer:', buyerWallet);
+    console.log('Total cost:', totalCost);
+
+    res.json({
+      success: true,
+      data: {
+        contractAddress,
+        quantity: parseInt(quantity),
+        totalCost,
+        buyerWallet,
+        transactionSignature: 'ABC123' + Math.random().toString(36).substring(2, 15)
+      }
+    });
+
+  } catch (error) {
+    console.error('Buy tokens error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Get token statistics endpoint
 router.get('/stats', async (req, res) => {
   const dbLogger = new DatabaseLogger();
