@@ -11,6 +11,9 @@ const DatabaseLogger = require('./src/database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Vercel - Fixed
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -25,10 +28,11 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Rate limiting
+// Rate limiting - Fixed for Vercel
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  trustProxy: false // Disable trust proxy to fix Vercel rate limiting error
 });
 app.use(limiter);
 
