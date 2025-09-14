@@ -114,6 +114,13 @@ class TokenCreator {
       // Create metadata account using official Metaplex Umi pattern
       console.log('📝 Creating metadata account using official Metaplex Umi...');
       
+      // Set the payer for this transaction
+      this.umi.identity = {
+        publicKey: publicKey(walletPublicKey.toString()),
+        signMessage: async () => new Uint8Array(0),
+        signTransaction: async () => new Uint8Array(0),
+      };
+      
       // Find metadata PDA using Umi
       const metadataPda = findMetadataPda(this.umi, { 
         mint: publicKey(mintKeypair.publicKey.toString()) 
@@ -148,8 +155,16 @@ class TokenCreator {
       console.log('Umi instruction structure:', createMetadataInstruction);
       
       // Extract the instruction from the TransactionBuilder
+      if (!createMetadataInstruction.items || createMetadataInstruction.items.length === 0) {
+        throw new Error('No instructions found in Umi TransactionBuilder');
+      }
+      
       const umiInstruction = createMetadataInstruction.items[0].instruction;
       console.log('Umi instruction data:', umiInstruction);
+      
+      if (!umiInstruction || !umiInstruction.keys || !umiInstruction.programId || !umiInstruction.data) {
+        throw new Error('Invalid Umi instruction structure');
+      }
       
       const metadataInstruction = new TransactionInstruction({
         keys: umiInstruction.keys.map(key => ({
@@ -160,6 +175,8 @@ class TokenCreator {
         programId: new PublicKey(umiInstruction.programId),
         data: Buffer.from(umiInstruction.data),
       });
+      
+      console.log('✅ Metadata instruction converted successfully');
 
       // Create transaction
       const transaction = new Transaction();
