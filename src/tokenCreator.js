@@ -18,7 +18,7 @@ const {
 } = require('@solana/spl-token');
 
 const {
-  createCreateMetadataAccountV2Instruction,
+  createCreateMetadataAccountV3Instruction,
 } = require('@metaplex-foundation/mpl-token-metadata');
 
 // Use hardcoded program ID for compatibility with proper error handling
@@ -130,8 +130,8 @@ class TokenCreator {
       const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
       console.log('✅ Metadata URI prepared:', metadataUri);
 
-      // Create metadata account instruction using V2 (available in version 3.4.0)
-      const createMetadataInstruction = createCreateMetadataAccountV2Instruction(
+      // Create metadata account instruction using V3
+      const createMetadataInstruction = createCreateMetadataAccountV3Instruction(
         {
           metadata: metadataPDA,
           mint: mintKeypair.publicKey,
@@ -140,7 +140,7 @@ class TokenCreator {
           updateAuthority: walletPublicKey,
         },
         {
-          createMetadataAccountArgsV2: {
+          createMetadataAccountArgsV3: {
             data: {
               name: tokenData.name,
               symbol: tokenData.symbol,
@@ -148,8 +148,10 @@ class TokenCreator {
               sellerFeeBasisPoints: 0,
               creators: null,
               collection: null,
+              uses: null,
             },
             isMutable: true,
+            collectionDetails: null,
           },
         }
       );

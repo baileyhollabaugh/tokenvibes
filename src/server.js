@@ -39,8 +39,8 @@ const limiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Vercel-specific configuration to avoid trust proxy issues
-  trustProxy: false, // Disable trust proxy to avoid rate limiting bypass
+  // Vercel-specific configuration
+  trustProxy: true, // Trust proxy for Vercel deployment
 });
 app.use(limiter);
 
