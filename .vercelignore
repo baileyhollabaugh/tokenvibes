@@ -1,0 +1,29 @@
+# Ignore archive directories
+ARCHIVE-*/
+
+# Ignore development files
+*.log
+.env.local
+.env.development
+
+# Ignore test files
+__tests__/
+*.test.js
+*.spec.js
+
+# Ignore documentation
+*.md
+README.md
+DEPLOYMENT-GUIDE.md
+SUPABASE-SETUP.md
+VERCEL-DEPLOYMENT-ISSUES-RESOLVED.md
+
+# Ignore contracts (Rust/Solana programs)
+contracts/
+
+# Ignore workspace files
+*.code-workspace
+
+# Ignore setup scripts
+setup.sh
+setup-supabase.sh

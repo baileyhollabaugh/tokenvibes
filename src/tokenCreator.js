@@ -171,7 +171,7 @@ class TokenCreator {
         decimals: tokenData.decimals,
         destinationAddress: tokenData.destinationAddress,
         destinationTokenAccount: destinationTokenAccount.toString(),
-        transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64')
+        transaction: transaction.serialize().toString('base64')
       };
 
     } catch (error) {

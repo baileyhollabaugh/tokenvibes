@@ -36,15 +36,8 @@ router.post('/create', async (req, res) => {
     const walletPublicKey = new PublicKey(walletAddress);
     const result = await tokenCreator.createToken(tokenData, walletPublicKey);
 
-    // Log successful token creation to database
+    // Log successful token creation to database (non-blocking)
     console.log('🔍 DEBUG: About to log token creation to database...');
-    console.log('🔍 DEBUG: Token data to log:', {
-      name: tokenData.name,
-      symbol: tokenData.symbol,
-      quantity: tokenData.quantity,
-      mintAddress: result.mintAddress,
-      creatorWallet: walletAddress
-    });
     try {
       await dbLogger.logTokenCreation({
         ...tokenData,
@@ -53,9 +46,8 @@ router.post('/create', async (req, res) => {
       });
       console.log('🔍 DEBUG: Token creation logging completed successfully');
     } catch (dbError) {
-      console.error('❌ Database logging failed:', dbError);
-      console.error('❌ Database error details:', JSON.stringify(dbError, null, 2));
-      // Don't fail the request if logging fails
+      console.error('❌ Database logging failed (non-critical):', dbError.message);
+      // Don't fail the request if logging fails - token creation is more important
     }
 
     res.json({

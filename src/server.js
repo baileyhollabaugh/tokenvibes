@@ -10,8 +10,7 @@ const tokenRoutes = require('./routes/tokenRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy for rate limiting - Vercel requires this exact setting
-app.set('trust proxy', true);
+// Trust proxy setting removed - causing conflicts with rate limiting
 
 // Security middleware
 app.use(helmet({
@@ -33,10 +32,6 @@ const limiter = rateLimit({
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skip: (req) => {
-    // Skip rate limiting for Vercel preview deployments
-    return req.headers['x-vercel-id'] !== undefined;
-  }
 });
 app.use(limiter);
 
@@ -71,8 +66,28 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Server Error:', err);
+  console.error('Error Stack:', err.stack);
+  
+  // Handle specific error types
+  if (err.message.includes('Token creation failed')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Token creation failed',
+      message: err.message
+    });
+  }
+  
+  if (err.message.includes('rate limit')) {
+    return res.status(429).json({
+      success: false,
+      error: 'Too many requests',
+      message: 'Please try again later'
+    });
+  }
+  
   res.status(500).json({ 
+    success: false,
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
