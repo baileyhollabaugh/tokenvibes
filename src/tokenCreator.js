@@ -20,9 +20,8 @@ const {
 const {
   createCreateMetadataAccountV3Instruction,
   createCreateMetadataAccountV2Instruction,
+  PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID
 } = require('@metaplex-foundation/mpl-token-metadata');
-
-const { PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID } = require('@metaplex-foundation/mpl-token-metadata');
 
 class TokenCreator {
   constructor() {
