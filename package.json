@@ -8,9 +8,6 @@
     "dev": "nodemon src/server.js",
     "test": "jest"
   },
-  "engines": {
-    "node": "22.x"
-  },
   "dependencies": {
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/mpl-toolbox": "^0.10.0",
