@@ -26,12 +26,14 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Rate limiting - simplified for Vercel compatibility
+// Rate limiting - Vercel-compatible configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Vercel-specific configuration to avoid trust proxy issues
+  trustProxy: false, // Disable trust proxy to avoid rate limiting bypass
 });
 app.use(limiter);
 

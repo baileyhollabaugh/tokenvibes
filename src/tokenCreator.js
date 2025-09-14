@@ -22,8 +22,13 @@ const {
   createCreateMetadataAccountV2Instruction,
 } = require('@metaplex-foundation/mpl-token-metadata');
 
-// Use hardcoded program ID for compatibility
+// Use hardcoded program ID for compatibility with proper error handling
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+
+// Validate the program ID is properly initialized
+if (!TOKEN_METADATA_PROGRAM_ID || typeof TOKEN_METADATA_PROGRAM_ID.toBuffer !== 'function') {
+  throw new Error('TOKEN_METADATA_PROGRAM_ID is not properly initialized');
+}
 
 class TokenCreator {
   constructor() {
@@ -85,7 +90,17 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata account PDA
+      // Create metadata account PDA with error handling
+      console.log('🔍 Creating metadata PDA...');
+      console.log('🔍 TOKEN_METADATA_PROGRAM_ID:', TOKEN_METADATA_PROGRAM_ID);
+      console.log('🔍 TOKEN_METADATA_PROGRAM_ID.toBuffer type:', typeof TOKEN_METADATA_PROGRAM_ID.toBuffer);
+      console.log('🔍 mintKeypair.publicKey:', mintKeypair.publicKey);
+      console.log('🔍 mintKeypair.publicKey.toBuffer type:', typeof mintKeypair.publicKey.toBuffer);
+      
+      if (!TOKEN_METADATA_PROGRAM_ID.toBuffer) {
+        throw new Error('TOKEN_METADATA_PROGRAM_ID.toBuffer is undefined');
+      }
+      
       const [metadataPDA] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('metadata'),
