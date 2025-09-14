@@ -22,7 +22,8 @@ const {
   createCreateMetadataAccountV2Instruction,
 } = require('@metaplex-foundation/mpl-token-metadata');
 
-const { PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID } = require('@metaplex-foundation/mpl-token-metadata');
+// Use hardcoded program ID for compatibility
+const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
 class TokenCreator {
   constructor() {
