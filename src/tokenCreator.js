@@ -84,13 +84,14 @@ class TokenCreator {
       );
 
       // Create metadata account PDA
+      const tokenMetadataProgramId = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
       const [metadataPDA] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('metadata'),
-          MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          tokenMetadataProgramId.toBuffer(),
           mintKeypair.publicKey.toBuffer(),
         ],
-        MPL_TOKEN_METADATA_PROGRAM_ID
+        tokenMetadataProgramId
       );
 
       console.log('📝 Metadata PDA:', metadataPDA.toString());
