@@ -20,7 +20,7 @@ const {
 const {
   createCreateMetadataAccountV3Instruction,
   createCreateMetadataAccountV2Instruction,
-  PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID
+  MPL_TOKEN_METADATA_PROGRAM_ID
 } = require('@metaplex-foundation/mpl-token-metadata');
 
 class TokenCreator {
@@ -87,10 +87,10 @@ class TokenCreator {
       const [metadataPDA] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('metadata'),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(),
           mintKeypair.publicKey.toBuffer(),
         ],
-        TOKEN_METADATA_PROGRAM_ID
+        MPL_TOKEN_METADATA_PROGRAM_ID
       );
 
       console.log('📝 Metadata PDA:', metadataPDA.toString());
