@@ -121,7 +121,7 @@ document.getElementById('tokenForm').addEventListener('submit', async (e) => {
     console.log('🔍 DEBUG: Symbol from response:', data.data.symbol);
 
     // Sign and submit transaction
-    const transaction = solanaWeb3.Transaction.from(Buffer.from(data.data.transaction, 'base64'));
+    const transaction = solanaWeb3.Transaction.from(Uint8Array.from(atob(data.data.transaction), c => c.charCodeAt(0)));
     
     // Create the mint keypair from the secret key
     const mintKeypair = solanaWeb3.Keypair.fromSecretKey(new Uint8Array(data.data.mintKeypair));
