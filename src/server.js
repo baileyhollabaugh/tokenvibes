@@ -10,9 +10,6 @@ const tokenRoutes = require('./routes/tokenRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy for rate limiting - Vercel requires this exact setting
-app.set('trust proxy', true);
-
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -27,11 +24,12 @@ app.use(helmet({
 }));
 app.use(cors());
 
-// Rate limiting - Fixed for Vercel
+// Rate limiting - Fixed for Vercel (no trust proxy needed)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  trustProxy: false // Disable trust proxy to fix Vercel rate limiting error
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use(limiter);
 

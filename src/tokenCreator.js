@@ -16,28 +16,22 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
-const { createUmi } = require('@metaplex-foundation/umi-bundle-defaults');
-const { createGenericFileFromJson, irysUploader } = require('@metaplex-foundation/umi-uploader-irys');
-const { createMetadataAccountV3, findMetadataPda } = require('@metaplex-foundation/mpl-token-metadata');
+const { 
+  createCreateMetadataAccountV3Instruction,
+  findMetadataPda 
+} = require('@metaplex-foundation/mpl-token-metadata');
 
 class TokenCreator {
   constructor() {
     this.connection = new Connection(
-      process.env.SOLANA_RPC_URL || 'https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG',
+      process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
       'confirmed'
     );
-    
-    // Initialize Umi for metadata operations
-    this.umi = createUmi(this.connection.rpcEndpoint)
-      .use(irysUploader({
-        address: 'https://node1.bundlr.network',
-        timeout: 60000,
-      }));
   }
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Preparing token creation with Umi and proper Metaplex...');
+      console.log('🚀 Preparing token creation with pure Web3.js...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
 
@@ -87,7 +81,7 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata JSON
+      // Create metadata JSON (simple version without IPFS upload)
       const metadata = {
         name: tokenData.name,
         symbol: tokenData.symbol,
@@ -102,19 +96,17 @@ class TokenCreator {
         }
       };
 
-      // Upload metadata to IPFS using Umi
-      console.log('📤 Uploading metadata to IPFS...');
-      const metadataFile = createGenericFileFromJson(metadata, 'metadata.json');
-      const [metadataUri] = await this.umi.uploader.upload([metadataFile]);
-      console.log('✅ Metadata uploaded:', metadataUri);
+      // For now, use a simple metadata URI (we'll upload to IPFS later)
+      const metadataUri = `https://raw.githubusercontent.com/your-org/metadata/main/${mintKeypair.publicKey.toString()}.json`;
+      console.log('📝 Using metadata URI:', metadataUri);
 
-      // Find metadata PDA
-      const metadataPda = findMetadataPda(this.umi, { mint: mintKeypair.publicKey });
-      console.log('📝 Metadata PDA:', metadataPda[0].toString());
+      // Find metadata PDA using Web3.js compatible method
+      const metadataPda = findMetadataPda({ mint: mintKeypair.publicKey });
+      console.log('📝 Metadata PDA:', metadataPda.toString());
 
-      // Create metadata account instruction using Umi
-      const createMetadataInstruction = createMetadataAccountV3(this.umi, {
-        metadata: metadataPda[0],
+      // Create metadata account instruction using Web3.js compatible method
+      const createMetadataInstruction = createCreateMetadataAccountV3Instruction({
+        metadata: metadataPda,
         mint: mintKeypair.publicKey,
         mintAuthority: walletPublicKey,
         payer: walletPublicKey,
@@ -138,8 +130,6 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
-      
-      // Add metadata instruction (this will be a Umi instruction)
       transaction.add(createMetadataInstruction);
 
       // Set recent blockhash
@@ -155,7 +145,7 @@ class TokenCreator {
         name: tokenData.name,
         symbol: tokenData.symbol,
         mintAddress: mintKeypair.publicKey.toString(),
-        metadataAddress: metadataPda[0].toString(),
+        metadataAddress: metadataPda.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
         mintKeypair: Array.from(mintKeypair.secretKey),
