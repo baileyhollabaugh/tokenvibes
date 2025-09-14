@@ -10,6 +10,13 @@ const tokenRoutes = require('./routes/tokenRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Log environment status for debugging
+console.log('🔍 Environment check:');
+console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔍 VERCEL:', process.env.VERCEL);
+console.log('🔍 PORT:', PORT);
+console.log('🔍 SOLANA_RPC_URL:', process.env.SOLANA_RPC_URL ? 'SET' : 'NOT SET');
+
 // Trust proxy setting removed - causing conflicts with rate limiting
 
 // Security middleware

@@ -24,8 +24,6 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production",
-    "SOLANA_RPC_URL": "https://solana-mainnet.g.alchemy.com/v2/sw8B8Gyq0uicnRSqohuwG",
-    "IRYS_URL": "https://node1.irys.xyz"
+    "NODE_ENV": "production"
   }
 }
