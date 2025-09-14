@@ -17,17 +17,18 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
-const {
-  createCreateMetadataAccountV3Instruction,
-} = require('@metaplex-foundation/mpl-token-metadata');
+// Temporarily disable metadata to get basic token creation working
+// const {
+//   createCreateMetadataAccountV3Instruction,
+// } = require('@metaplex-foundation/mpl-token-metadata');
 
-// Use hardcoded program ID for compatibility with proper error handling
-const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+// Temporarily disable metadata program ID
+// const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
 // Validate the program ID is properly initialized
-if (!TOKEN_METADATA_PROGRAM_ID || typeof TOKEN_METADATA_PROGRAM_ID.toBuffer !== 'function') {
-  throw new Error('TOKEN_METADATA_PROGRAM_ID is not properly initialized');
-}
+// if (!TOKEN_METADATA_PROGRAM_ID || typeof TOKEN_METADATA_PROGRAM_ID.toBuffer !== 'function') {
+//   throw new Error('TOKEN_METADATA_PROGRAM_ID is not properly initialized');
+// }
 
 class TokenCreator {
   constructor() {
@@ -89,72 +90,72 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata account PDA with error handling
-      console.log('🔍 Creating metadata PDA...');
-      console.log('🔍 TOKEN_METADATA_PROGRAM_ID:', TOKEN_METADATA_PROGRAM_ID);
-      console.log('🔍 TOKEN_METADATA_PROGRAM_ID.toBuffer type:', typeof TOKEN_METADATA_PROGRAM_ID.toBuffer);
-      console.log('🔍 mintKeypair.publicKey:', mintKeypair.publicKey);
-      console.log('🔍 mintKeypair.publicKey.toBuffer type:', typeof mintKeypair.publicKey.toBuffer);
+      // Temporarily disable metadata creation
+      // console.log('🔍 Creating metadata PDA...');
+      // console.log('🔍 TOKEN_METADATA_PROGRAM_ID:', TOKEN_METADATA_PROGRAM_ID);
+      // console.log('🔍 TOKEN_METADATA_PROGRAM_ID.toBuffer type:', typeof TOKEN_METADATA_PROGRAM_ID.toBuffer);
+      // console.log('🔍 mintKeypair.publicKey:', mintKeypair.publicKey);
+      // console.log('🔍 mintKeypair.publicKey.toBuffer type:', typeof mintKeypair.publicKey.toBuffer);
       
-      if (!TOKEN_METADATA_PROGRAM_ID.toBuffer) {
-        throw new Error('TOKEN_METADATA_PROGRAM_ID.toBuffer is undefined');
-      }
+      // if (!TOKEN_METADATA_PROGRAM_ID.toBuffer) {
+      //   throw new Error('TOKEN_METADATA_PROGRAM_ID.toBuffer is undefined');
+      // }
       
-      const [metadataPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('metadata'),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-          mintKeypair.publicKey.toBuffer(),
-        ],
-        TOKEN_METADATA_PROGRAM_ID
-      );
+      // const [metadataPDA] = PublicKey.findProgramAddressSync(
+      //   [
+      //     Buffer.from('metadata'),
+      //     TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+      //     mintKeypair.publicKey.toBuffer(),
+      //   ],
+      //   TOKEN_METADATA_PROGRAM_ID
+      // );
 
-      console.log('📝 Metadata PDA:', metadataPDA.toString());
+      // console.log('📝 Metadata PDA:', metadataPDA.toString());
 
       // Create metadata JSON
-      const metadata = {
-        name: tokenData.name,
-        symbol: tokenData.symbol,
-        description: tokenData.description || '',
-        image: tokenData.imageUri || '',
-        external_url: '',
-        attributes: [],
-        properties: {
-          files: [],
-          category: 'image',
-          creators: []
-        }
-      };
+      // const metadata = {
+      //   name: tokenData.name,
+      //   symbol: tokenData.symbol,
+      //   description: tokenData.description || '',
+      //   image: tokenData.imageUri || '',
+      //   external_url: '',
+      //   attributes: [],
+      //   properties: {
+      //     files: [],
+      //     category: 'image',
+      //     creators: []
+      //   }
+      // };
 
       // For now, use a placeholder metadata URI
-      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
-      console.log('✅ Metadata URI prepared:', metadataUri);
+      // const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
+      // console.log('✅ Metadata URI prepared:', metadataUri);
 
-      // Create metadata account instruction using V3
-      const createMetadataInstruction = createCreateMetadataAccountV3Instruction(
-        {
-          metadata: metadataPDA,
-          mint: mintKeypair.publicKey,
-          mintAuthority: walletPublicKey,
-          payer: walletPublicKey,
-          updateAuthority: walletPublicKey,
-        },
-        {
-          createMetadataAccountArgsV3: {
-            data: {
-              name: tokenData.name,
-              symbol: tokenData.symbol,
-              uri: metadataUri,
-              sellerFeeBasisPoints: 0,
-              creators: null,
-              collection: null,
-              uses: null,
-            },
-            isMutable: true,
-            collectionDetails: null,
-          },
-        }
-      );
+      // Temporarily disable metadata creation to get basic token working
+      // const createMetadataInstruction = createCreateMetadataAccountV3Instruction(
+      //   {
+      //     metadata: metadataPDA,
+      //     mint: mintKeypair.publicKey,
+      //     mintAuthority: walletPublicKey,
+      //     payer: walletPublicKey,
+      //     updateAuthority: walletPublicKey,
+      //   },
+      //   {
+      //     createMetadataAccountArgsV3: {
+      //       data: {
+      //         name: tokenData.name,
+      //         symbol: tokenData.symbol,
+      //         uri: metadataUri,
+      //         sellerFeeBasisPoints: 0,
+      //         creators: null,
+      //         collection: null,
+      //         uses: null,
+      //       },
+      //       isMutable: true,
+      //       collectionDetails: null,
+      //     },
+      //   }
+      // );
 
       // Create transaction
       const transaction = new Transaction();
@@ -162,7 +163,7 @@ class TokenCreator {
       transaction.add(initializeMintInstruction);
       transaction.add(createTokenAccountInstruction);
       transaction.add(mintToInstruction);
-      transaction.add(createMetadataInstruction);
+      // transaction.add(createMetadataInstruction); // Temporarily disabled
 
       // Set recent blockhash
       const { blockhash } = await this.connection.getLatestBlockhash();
@@ -177,9 +178,9 @@ class TokenCreator {
         name: tokenData.name,
         symbol: tokenData.symbol,
         mintAddress: mintKeypair.publicKey.toString(),
-        metadataAddress: metadataPDA.toString(),
-        metadataUri: metadataUri,
-        metadata: metadata,
+        // metadataAddress: metadataPDA.toString(), // Temporarily disabled
+        // metadataUri: metadataUri, // Temporarily disabled
+        // metadata: metadata, // Temporarily disabled
         mintKeypair: Array.from(mintKeypair.secretKey),
         quantity: tokenData.quantity,
         decimals: tokenData.decimals,
