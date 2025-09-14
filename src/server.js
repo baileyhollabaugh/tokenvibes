@@ -10,6 +10,9 @@ const tokenRoutes = require('./routes/tokenRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Vercel (required for rate limiting)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {

@@ -3,7 +3,8 @@ const {
   Keypair, 
   PublicKey, 
   SystemProgram,
-  Transaction
+  Transaction,
+  TransactionInstruction
 } = require('@solana/web3.js');
 
 const {
@@ -16,10 +17,12 @@ const {
   getMinimumBalanceForRentExemptMint
 } = require('@solana/spl-token');
 
-const { 
+const {
   createCreateMetadataAccountV3Instruction,
-  findMetadataPda 
+  createCreateMetadataAccountV2Instruction,
 } = require('@metaplex-foundation/mpl-token-metadata');
+
+const { PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID } = require('@metaplex-foundation/mpl-token-metadata');
 
 class TokenCreator {
   constructor() {
@@ -31,7 +34,7 @@ class TokenCreator {
 
   async createToken(tokenData, walletPublicKey) {
     try {
-      console.log('🚀 Preparing token creation with pure Web3.js...');
+      console.log('🚀 Preparing token creation with Metaplex metadata...');
       console.log('Token data:', tokenData);
       console.log('Wallet address:', walletPublicKey.toString());
 
@@ -81,11 +84,23 @@ class TokenCreator {
         tokenData.quantity * Math.pow(10, tokenData.decimals) // amount
       );
 
-      // Create metadata JSON (simple version without IPFS upload)
+      // Create metadata account PDA
+      const [metadataPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('metadata'),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          mintKeypair.publicKey.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
+
+      console.log('📝 Metadata PDA:', metadataPDA.toString());
+
+      // Create metadata JSON
       const metadata = {
         name: tokenData.name,
         symbol: tokenData.symbol,
-        description: tokenData.description || `A token called ${tokenData.name}`,
+        description: tokenData.description || '',
         image: tokenData.imageUri || '',
         external_url: '',
         attributes: [],
@@ -96,35 +111,37 @@ class TokenCreator {
         }
       };
 
-      // For now, use a simple metadata URI (we'll upload to IPFS later)
-      const metadataUri = `https://raw.githubusercontent.com/your-org/metadata/main/${mintKeypair.publicKey.toString()}.json`;
-      console.log('📝 Using metadata URI:', metadataUri);
+      // For now, use a placeholder metadata URI
+      const metadataUri = `https://example.com/metadata/${Date.now()}.json`;
+      console.log('✅ Metadata URI prepared:', metadataUri);
 
-      // Find metadata PDA using Web3.js compatible method
-      const metadataPda = findMetadataPda({ mint: mintKeypair.publicKey });
-      console.log('📝 Metadata PDA:', metadataPda.toString());
-
-      // Create metadata account instruction using Web3.js compatible method
-      const createMetadataInstruction = createCreateMetadataAccountV3Instruction({
-        metadata: metadataPda,
-        mint: mintKeypair.publicKey,
-        mintAuthority: walletPublicKey,
-        payer: walletPublicKey,
-        updateAuthority: walletPublicKey,
-        data: {
-          name: tokenData.name,
-          symbol: tokenData.symbol,
-          uri: metadataUri,
-          sellerFeeBasisPoints: 0,
-          creators: null,
-          collection: null,
-          uses: null,
+      // Create metadata account instruction
+      const createMetadataInstruction = createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataPDA,
+          mint: mintKeypair.publicKey,
+          mintAuthority: walletPublicKey,
+          payer: walletPublicKey,
+          updateAuthority: walletPublicKey,
         },
-        isMutable: true,
-        collectionDetails: null,
-      });
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name: tokenData.name,
+              symbol: tokenData.symbol,
+              uri: metadataUri,
+              sellerFeeBasisPoints: 0,
+              creators: null,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        }
+      );
 
-      // Create transaction with all instructions
+      // Create transaction
       const transaction = new Transaction();
       transaction.add(createAccountInstruction);
       transaction.add(initializeMintInstruction);
@@ -145,7 +162,7 @@ class TokenCreator {
         name: tokenData.name,
         symbol: tokenData.symbol,
         mintAddress: mintKeypair.publicKey.toString(),
-        metadataAddress: metadataPda.toString(),
+        metadataAddress: metadataPDA.toString(),
         metadataUri: metadataUri,
         metadata: metadata,
         mintKeypair: Array.from(mintKeypair.secretKey),
